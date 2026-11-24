@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>The Unlabeled Gallery</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one gallery wall. The work hangs centred under a picture light; every control is a wall-label card. */
+:root {
+  --wall: #e2e5e0;
+  --wall-2: #d0d6cf;
+  --ink: #18221f;
+  --ink-2: #54615b;
+  --rule: #b7c1ba;
+  --card: #fcfcf9;
+  --card-ink: #18221f;
+  --card-ink-2: #59665f;
+  --card-rule: #d7dcd5;
+  --accent: #1d5c4f;
+  --accent-ink: #f4f7f3;
+  --good: #1c7446;
+  --bad: #b0372b;
+  --good-wall: #1c7446;
+  --bad-wall: #b0372b;
+  --frame-hi: #403f3a;
+  --frame-lo: #151514;
+  --light: rgba(255, 255, 255, .6);
+  --shadow: rgba(24, 34, 31, .3);
+  --font-display: "Bodoni Moda", "Bodoni 72", Didot, "Times New Roman", serif;
+  --font-ui: "Hanken Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --wall: #15332d; --wall-2: #0f2722; --ink: #eef1ea; --ink-2: #a9b9b0; --rule: #2f5048;
+    --card: #f3f0e4; --card-ink: #18221f; --card-ink-2: #55615b; --card-rule: #d6d2c2;
+    --accent: #d8b168; --accent-ink: #1b1608;
+    --good-wall: #86d8a8; --bad-wall: #f29a8f;
+    --frame-hi: #e6c47d; --frame-lo: #8a6824;
+    --light: rgba(255, 233, 180, .13); --shadow: rgba(0, 0, 0, .55);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --wall: #15332d; --wall-2: #0f2722; --ink: #eef1ea; --ink-2: #a9b9b0; --rule: #2f5048;
+  --card: #f3f0e4; --card-ink: #18221f; --card-ink-2: #55615b; --card-rule: #d6d2c2;
+  --accent: #d8b168; --accent-ink: #1b1608;
+  --good-wall: #86d8a8; --bad-wall: #f29a8f;
+  --frame-hi: #e6c47d; --frame-lo: #8a6824;
+  --light: rgba(255, 233, 180, .13); --shadow: rgba(0, 0, 0, .55);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  background: radial-gradient(110% 620px at 50% -140px, var(--light), transparent 70%) no-repeat, var(--wall);
+  color: var(--ink);
+  font: 400 16px/1.5 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.shell {
+  max-width: 1180px; margin: 0 auto;
+  padding-block: 18px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* ---------- shared pieces ---------- */
+.kicker { margin: 0; font: 600 .74rem/1.3 var(--font-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+.cta {
+  appearance: none; border: 0; cursor: pointer; border-radius: 2px;
+  background: var(--accent); color: var(--accent-ink);
+  font: 600 1rem/1 var(--font-ui); padding: 16px 24px;
+  display: inline-flex; align-items: center; gap: 10px;
+  box-shadow: 0 10px 18px -12px var(--shadow);
+  transition: transform .12s ease;
+  white-space: nowrap;
+}
+.cta svg { width: 18px; height: 18px; flex: none; }
+.cta:hover { transform: translateY(-1px); }
+.cta:active { transform: translateY(0); }
+.ghost {
+  appearance: none; cursor: pointer; border-radius: 2px;
+  background: transparent; color: var(--ink); border: 1px solid var(--rule);
+  font: 500 .95rem/1 var(--font-ui); padding: 13px 16px;
+}
+.ghost:hover { border-color: var(--ink-2); }
+.frame {
+  display: block;
+  width: min(100%, calc(var(--maxh, 600px) * var(--ar, 1)));
+  padding: clamp(5px, 1vw, 11px);
+  background: linear-gradient(145deg, var(--frame-hi), var(--frame-lo) 46%, var(--frame-hi));
+  box-shadow: 0 28px 42px -24px var(--shadow), 0 3px 8px -2px var(--shadow);
+}
+.canvas {
+  display: block; position: relative; overflow: hidden;
+  aspect-ratio: var(--ar, 1); background: var(--wall-2);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .4);
+}
+.canvas img {
+  display: block; width: 100%; height: 100%; object-fit: cover;
+  transform-origin: var(--fx, 50%) var(--fy, 50%);
+  transform: scale(var(--z, 1));
+  transition: transform 1.15s cubic-bezier(.2, .7, .15, 1);
+}
+
+/* ---------- top bar ---------- */
+.bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding-bottom: 12px; margin-bottom: clamp(18px, 3vw, 34px);
+  border-bottom: 1px solid var(--rule);
+}
+.wordmark { font: italic 500 1.12rem/1.1 var(--font-display); margin: 0; }
+.pips { display: flex; gap: 5px; align-items: center; }
+.pip {
+  width: 13px; height: 17px; border: 1.5px solid var(--ink-2); border-radius: 1px;
+  background: linear-gradient(to top, var(--accent) var(--fill, 0%), transparent var(--fill, 0%));
+}
+.pip.is-done { border-color: var(--accent); }
+.pip.is-now { border-color: var(--ink); box-shadow: 0 0 0 2px var(--wall), 0 0 0 3.5px var(--ink); }
+.bar-right { display: flex; align-items: center; gap: 14px; }
+.tally { font: 600 1rem/1 var(--font-ui); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tally small { font-weight: 400; color: var(--ink-2); font-size: .85em; }
+.quit { appearance: none; background: none; border: 0; padding: 6px 2px; cursor: pointer; font: 500 .85rem/1 var(--font-ui); color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; }
+.quit:hover { color: var(--ink); }
+.quit-ask { display: flex; gap: 10px; align-items: center; font-size: .85rem; color: var(--ink-2); }
+
+/* ---------- lobby ---------- */
+.lobby { display: grid; gap: clamp(26px, 4.5vw, 52px); }
+.hang {
+  --h: clamp(70px, 17vw, 215px);
+  display: flex; align-items: flex-end; justify-content: center;
+  gap: clamp(14px, 3vw, 38px); padding-top: clamp(6px, 2vw, 22px); overflow: hidden;
+}
+.hang figure { margin: 0; flex: none; display: flex; flex-direction: column; align-items: center; gap: 12px; padding-bottom: 6px; }
+.hang figure:nth-child(1) { --k: .72; }
+.hang figure:nth-child(2) { --k: .95; }
+.hang figure:nth-child(3) { --k: 1.12; }
+.hang figure:nth-child(4) { --k: .86; }
+.hang figure:nth-child(5) { --k: .66; }
+.hang .frame { width: auto; padding: clamp(4px, .7vw, 8px); }
+.hang .canvas { height: calc(var(--h) * var(--k, 1)); }
+.blank {
+  width: 46px; height: 24px; display: grid; place-items: center;
+  background: var(--card); color: var(--card-ink-2);
+  font: italic 500 .95rem/1 var(--font-display);
+  box-shadow: 0 6px 10px -6px var(--shadow), 0 1px 2px var(--shadow);
+}
+.lobby-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: clamp(28px, 5vw, 72px); align-items: start; }
+.intro { display: grid; gap: 18px; min-width: 0; }
+.title { margin: 0; font: 500 clamp(2.7rem, 7.4vw, 5.2rem)/.98 var(--font-display); letter-spacing: -.015em; text-wrap: balance; }
+.title em { font-style: italic; font-weight: 400; }
+.lede { margin: 0; max-width: 34em; font-size: 1.08rem; line-height: 1.55; }
+.start { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; margin-top: 6px; }
+.meta { margin: 0; color: var(--ink-2); font-size: .92rem; }
+.best { margin: 0; font-size: .95rem; color: var(--ink-2); }
+.best b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.level { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; max-width: 31rem; }
+.lvl {
+  appearance: none; cursor: pointer; text-align: left;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 2px 11px;
+  padding: 11px 14px; border-radius: 2px;
+  background: var(--card); color: var(--card-ink); border: 1px solid var(--card-rule);
+  box-shadow: 0 8px 14px -11px var(--shadow);
+}
+.lvl::before { content: ""; grid-row: 1 / span 2; width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--card-ink-2); }
+.lvl.is-on { border-color: var(--card-ink); box-shadow: 0 0 0 1px var(--card-ink), 0 8px 14px -11px var(--shadow); }
+.lvl.is-on::before { border-color: var(--card-ink); background: radial-gradient(circle, var(--card-ink) 0 44%, transparent 50%); }
+.lvl b { grid-column: 2; font: 600 .98rem/1.3 var(--font-ui); }
+.lvl span { grid-column: 2; font-size: .84rem; line-height: 1.3; color: var(--card-ink-2); }
+.skills { display: grid; gap: 12px; min-width: 0; }
+.skill-list { display: grid; gap: 8px; }
+.skill {
+  appearance: none; cursor: pointer; text-align: left; width: 100%;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 14px;
+  padding: 12px 16px; border-radius: 2px;
+  background: var(--card); color: var(--card-ink); border: 1px solid var(--card-rule);
+  box-shadow: 0 8px 14px -11px var(--shadow);
+  transition: transform .12s ease;
+}
+.skill:hover { transform: translateX(3px); }
+.skill b { font: 600 1rem/1.3 var(--font-ui); }
+.skill span { grid-column: 1; font-size: .88rem; line-height: 1.35; color: var(--card-ink-2); }
+.skill svg { grid-column: 2; grid-row: 1 / span 2; width: 18px; height: 18px; color: var(--card-ink-2); }
+.credits { border-top: 1px solid var(--rule); padding-top: 16px; font-size: .84rem; color: var(--ink-2); max-width: 70ch; }
+.credits a { color: inherit; }
+
+/* ---------- play ---------- */
+.room { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 60px); align-items: start; }
+.stage { --maxh: min(64vh, 640px); display: flex; flex-direction: column; align-items: center; gap: 16px; min-width: 0; }
+.plate {
+  margin: 0; padding: 7px 12px; max-width: 100%;
+  background: var(--card); color: var(--card-ink-2);
+  font: 500 .8rem/1.3 var(--font-ui); text-align: center;
+  box-shadow: 0 6px 10px -6px var(--shadow), 0 1px 2px var(--shadow);
+}
+.plate i { font: italic 500 .95rem/1.2 var(--font-display); color: var(--card-ink); }
+.lineup { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(10px, 2vw, 20px); width: min(100%, 620px); }
+.tile {
+  appearance: none; background: none; border: 0; padding: 0; cursor: pointer;
+  position: relative; display: grid; place-items: center; aspect-ratio: 1;
+}
+.tile .frame { width: min(100%, calc(100% * var(--ar, 1))); padding: clamp(4px, .8vw, 8px); transition: transform .15s ease; }
+.tile:not([disabled]):hover .frame { transform: translateY(-3px); }
+.tile[disabled] { cursor: default; }
+.tile-key {
+  position: absolute; left: 0; top: 0; min-width: 26px; height: 26px; padding: 0 7px;
+  display: grid; place-items: center;
+  background: var(--card); color: var(--card-ink); font: 600 .8rem/1 var(--font-ui);
+  box-shadow: 0 4px 8px -4px var(--shadow), 0 1px 2px var(--shadow);
+}
+.slot { min-width: 0; }
+.tile { width: 100%; }
+.tile-cap {
+  margin: 10px 0 0; padding: 5px 8px; min-height: 1.9em;
+  font: 600 .78rem/1.25 var(--font-ui); text-align: center; color: transparent;
+}
+.tile-cap.is-on { background: var(--card); color: var(--card-ink); box-shadow: 0 4px 8px -4px var(--shadow), 0 1px 2px var(--shadow); }
+.tile.is-right .tile-key { background: var(--good); color: #fff; }
+.tile.is-wrong .tile-key { background: var(--bad); color: #fff; }
+.tile.is-dim .frame { opacity: .55; }
+
+.panel { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.prompt { margin: 0; font: 500 clamp(1.75rem, 3.5vw, 2.5rem)/1.08 var(--font-display); letter-spacing: -.01em; text-wrap: balance; }
+.prompt em { font-style: italic; }
+.hint { margin: 0; color: var(--ink-2); font-size: .92rem; }
+.options { display: grid; gap: 9px; }
+.opt {
+  appearance: none; cursor: pointer; text-align: left; width: 100%;
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 16px; border-radius: 2px;
+  background: var(--card); color: var(--card-ink); border: 1px solid var(--card-rule);
+  font: 500 1.03rem/1.25 var(--font-ui);
+  box-shadow: 0 8px 14px -11px var(--shadow);
+  transition: transform .12s ease;
+}
+.opt:hover { transform: translateX(3px); }
+.opt .key { flex: none; width: 1.7em; height: 1.7em; display: grid; place-items: center; border: 1px solid var(--card-rule); font: 600 .76rem/1 var(--font-ui); color: var(--card-ink-2); }
+.opt .txt { min-width: 0; }
+.opt.is-title .txt { font: italic 500 1.16rem/1.2 var(--font-display); }
+.loupe { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.worth { margin: 0; font-size: .92rem; color: var(--ink-2); }
+.worth b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.typed { display: grid; gap: 10px; }
+.field-label { font: 600 .74rem/1.3 var(--font-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+.typed-row { display: flex; gap: 8px; }
+.name-input {
+  flex: 1 1 auto; min-width: 0; padding: 14px 16px; border-radius: 2px;
+  background: var(--card); color: var(--card-ink); border: 1px solid var(--card-rule);
+  font: 500 1.08rem/1.2 var(--font-ui);
+  box-shadow: 0 8px 14px -11px var(--shadow);
+}
+.name-input::placeholder { color: var(--card-ink-2); opacity: .85; }
+.typed-alt { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.dating { display: grid; gap: 10px; }
+.year-row { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.year { font: 500 clamp(3.4rem, 9vw, 5rem)/.95 var(--font-display); font-variant-numeric: lining-nums tabular-nums; letter-spacing: -.02em; }
+.century { color: var(--ink-2); font-size: .95rem; }
+.yr { -webkit-appearance: none; appearance: none; width: 100%; height: 30px; margin: 0; background: transparent; cursor: pointer; }
+.yr::-webkit-slider-runnable-track { height: 2px; background: var(--ink-2); }
+.yr::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -11px; border-radius: 50%; background: var(--accent); border: 3px solid var(--wall); box-shadow: 0 0 0 1.5px var(--accent); }
+.yr::-moz-range-track { height: 2px; background: var(--ink-2); }
+.yr::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--accent); border: 3px solid var(--wall); box-shadow: 0 0 0 1.5px var(--accent); }
+.scale { position: relative; height: 18px; margin: 0 12px; font: 500 .72rem/1 var(--font-ui); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.scale span { position: absolute; top: 0; transform: translateX(-50%); }
+.nudge { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+.nudge .ghost { padding: 10px 12px; min-width: 52px; font-variant-numeric: tabular-nums; }
+.nudge .cta { margin-left: auto; }
+
+.verdict { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; }
+.verdict .word { display: inline-flex; align-items: center; gap: 8px; font: 700 1.1rem/1.2 var(--font-ui); }
+.verdict .word svg { width: 20px; height: 20px; }
+.verdict .pts { font: 600 1rem/1 var(--font-ui); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.is-good { color: var(--good-wall); }
+.is-bad { color: var(--bad-wall); }
+.is-mid { color: var(--ink); }
+.said { margin: -6px 0 0; color: var(--ink-2); font-size: .95rem; }
+.said i { font-family: var(--font-display); font-size: 1.05em; }
+.span-track { position: relative; height: 54px; margin: 2px 12px 0; }
+.span-track::before { content: ""; position: absolute; left: 0; right: 0; top: 26px; height: 2px; background: var(--rule); }
+.span-track .mark { position: absolute; top: 20px; width: 2px; height: 14px; background: var(--ink); }
+.span-track .mark b { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; font: 600 .74rem/1 var(--font-ui); font-variant-numeric: tabular-nums; }
+.span-track .mark.you b { bottom: 18px; color: var(--ink-2); }
+.span-track .mark.you { background: var(--ink-2); }
+.span-track .mark.real b { top: 19px; color: var(--accent); }
+.span-track .mark.real { background: var(--accent); width: 3px; }
+
+.tomb {
+  display: grid; gap: 2px; max-width: 34rem; padding: 18px 20px 16px; border-radius: 2px;
+  background: var(--card); color: var(--card-ink);
+  box-shadow: 0 16px 24px -18px var(--shadow), 0 1px 2px var(--shadow);
+}
+.tomb p { margin: 0; }
+.tomb .who { font: 700 1.06rem/1.25 var(--font-ui); }
+.tomb .life { font-size: .9rem; color: var(--card-ink-2); margin-bottom: 9px; }
+.tomb .what { font: italic 500 1.4rem/1.18 var(--font-display); text-wrap: balance; }
+.tomb .what span { font: 400 1rem/1.2 var(--font-ui); white-space: nowrap; }
+.tomb .where { font-size: .9rem; color: var(--card-ink-2); margin-top: 3px; }
+.tomb .tell { margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--card-rule); font-size: .93rem; line-height: 1.45; }
+.tomb .tell b { display: block; margin-bottom: 3px; font: 600 .68rem/1.2 var(--font-ui); letter-spacing: .13em; text-transform: uppercase; color: var(--card-ink-2); }
+.tomb .src { margin-top: 10px; font-size: .76rem; }
+.tomb .src a { color: var(--card-ink-2); }
+.next-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.keyhint { color: var(--ink-2); font-size: .82rem; }
+
+/* ---------- finale ---------- */
+.finale { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: clamp(28px, 5vw, 72px); align-items: start; }
+.result { display: grid; gap: 14px; min-width: 0; }
+.score { margin: 0; font: 500 clamp(4.2rem, 13vw, 8rem)/.9 var(--font-display); letter-spacing: -.03em; font-variant-numeric: lining-nums tabular-nums; }
+.score small { font: 400 1.1rem/1 var(--font-ui); letter-spacing: 0; color: var(--ink-2); margin-left: 8px; }
+.rank { margin: 0; font: italic 500 clamp(1.6rem, 3.4vw, 2.2rem)/1.1 var(--font-display); }
+.rank-line { margin: 0; max-width: 30em; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.recap { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; min-width: 0; }
+.recap li {
+  display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 4px 14px;
+  padding: 10px 14px 10px 10px; border-radius: 2px;
+  background: var(--card); color: var(--card-ink);
+  box-shadow: 0 8px 14px -11px var(--shadow);
+}
+.recap .thumb { grid-row: 1 / span 2; width: 56px; height: 56px; object-fit: cover; display: block; background: var(--card-rule); }
+.recap .rt { font: italic 500 1.08rem/1.2 var(--font-display); min-width: 0; }
+.recap .ra { grid-column: 2; font-size: .84rem; line-height: 1.3; color: var(--card-ink-2); min-width: 0; }
+.recap .rp { grid-column: 3; grid-row: 1 / span 2; text-align: right; font: 700 1rem/1.2 var(--font-ui); font-variant-numeric: tabular-nums; }
+.recap .rp small { display: block; font: 500 .7rem/1.3 var(--font-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--card-ink-2); }
+.recap .rp.zero { color: var(--bad); }
+.recap .rp.full { color: var(--good); }
+
+@media (max-width: 860px) {
+  .room, .lobby-grid, .finale { grid-template-columns: minmax(0, 1fr); }
+  .stage { --maxh: min(42vh, 420px); }
+  .wordmark, .keyhint, .hint { display: none; }
+  .hang figure:nth-child(1), .hang figure:nth-child(5) { display: none; }
+  .nudge .cta { margin-left: 0; width: 100%; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+</style>
+
+<div class="shell" id="app"></div>
+
+<script>window.GALLERY = {"v":1,"artists":[["Giotto","Italian","c. 1267–1337",1267,"Proto-Renaissance","early-ital","","Solid, weighty figures and raw grief in shallow, stage-like space under flat blue skies."],["Masaccio","Italian","1401–1428",1401,"Early Renaissance","early-ital","Italian Renaissance","Sculptural figures lit from one side, set in strict one-point perspective."],["Paolo Uccello","Italian","1397–1475",1397,"Early Renaissance","early-ital","Italian Renaissance","Toy-like horses and broken lances laid out as an exercise in perspective."],["Piero della Francesca","Italian","c. 1415–1492",1415,"Early Renaissance","early-ital","Italian Renaissance","Cool, pale light, motionless figures and geometry so calm it feels frozen."],["Andrea Mantegna","Italian","c. 1431–1506",1431,"Early Renaissance","early-ital","Italian Renaissance","Stone-hard drawing and daring foreshortening, as if carved rather than painted."],["Sandro Botticelli","Italian","c. 1445–1510",1445,"Early Renaissance","early-ital","Italian Renaissance","Flowing outlines, windblown hair and weightless, elongated mythological figures."],["Giovanni Bellini","Italian","c. 1430–1516",1430,"Venetian Renaissance","venetian","Italian Renaissance","Soft, glowing Venetian colour and serene figures in clear daylight."],["Leonardo da Vinci","Italian","1452–1519",1452,"High Renaissance","high-ren","Italian Renaissance","Sfumato, his smoky, edgeless shading, plus half-smiles and hazy blue distances."],["Raphael","Italian","1483–1520",1483,"High Renaissance","high-ren","Italian Renaissance","Balanced, graceful groups and sweet-faced figures in effortless harmony."],["Michelangelo","Italian","1475–1564",1475,"High Renaissance","high-ren","Italian Renaissance","Muscular, sculptural bodies that twist with energy, even in paint."],["Titian","Italian","c. 1488–1576",1488,"Venetian Renaissance","venetian","Italian Renaissance","Rich Venetian colour, warm flesh and loose brushwork, with deep reds and blues."],["Giorgione","Italian","c. 1477–1510",1477,"Venetian Renaissance","venetian","Italian Renaissance","Dreamy, poetic landscapes where the mood matters more than the story."],["Paolo Veronese","Italian","1528–1588",1528,"Venetian Renaissance","venetian","","Vast, festive banquets crowded with silks, columns and silvery colour."],["Parmigianino","Italian","1503–1540",1503,"Mannerism","mannerism","Mannerism","Impossibly long necks, fingers and limbs, elegance pushed past nature."],["Bronzino","Italian","1503–1572",1503,"Mannerism","mannerism","Mannerism","Porcelain-smooth skin, icy colour and puzzles of entwined, polished bodies."],["Giuseppe Arcimboldo","Italian","1526–1593",1526,"Mannerism","mannerism","Mannerism","Portrait heads assembled from fruit, vegetables, flowers or objects."],["El Greco","Greek-Spanish","1541–1614",1541,"Mannerism","mannerism","Mannerism","Flame-like, stretched figures under stormy skies, in acid, flickering colour."],["Jan van Eyck","Flemish","c. 1390–1441",1390,"Early Netherlandish","north-ren","Northern Renaissance","Jewel-like oil detail, with every reflection, fur and brocade rendered microscopically."],["Rogier van der Weyden","Flemish","c. 1399–1464",1399,"Early Netherlandish","north-ren","Northern Renaissance","Sharp, sculptural figures and open grief, with tears you can count."],["Hieronymus Bosch","Netherlandish","c. 1450–1516",1450,"Northern Renaissance","north-ren","Northern Renaissance","Swarms of tiny figures, hybrid monsters and surreal moral nightmares."],["Albrecht Dürer","German","1471–1528",1471,"Northern Renaissance","north-ren","Northern Renaissance","An engraver's precision in every hair, usually signed with an AD monogram."],["Matthias Grünewald","German","c. 1470–1528",1470,"Northern Renaissance","north-ren","Northern Renaissance","Harrowing, twisted Crucifixions and unearthly, glowing colour."],["Hans Holbein the Younger","German","c. 1497–1543",1497,"Northern Renaissance","north-ren","Northern Renaissance","Cool, exact court portraits with meticulously painted objects and fabrics."],["Pieter Bruegel the Elder","Flemish","c. 1525–1569",1525,"Northern Renaissance","north-ren","Northern Renaissance","High viewpoints over crowds of stocky peasants and wide seasonal landscapes."],["Caravaggio","Italian","1571–1610",1571,"Baroque","baroque","Baroque","Tenebrism, with figures caught in a harsh spotlight against near-black darkness."],["Artemisia Gentileschi","Italian","1593–c. 1656",1593,"Baroque","baroque","Baroque","Caravaggesque drama with strong, determined heroines at the centre."],["Peter Paul Rubens","Flemish","1577–1640",1577,"Baroque","baroque","Baroque","Swirling diagonals, fleshy bodies and warm, exuberant movement."],["Anthony van Dyck","Flemish","1599–1641",1599,"Baroque","baroque","Baroque","Elegant aristocrats with long fingers, shimmering silk and relaxed poise."],["Nicolas Poussin","French","1594–1665",1594,"Baroque classicism","baroque","","Ordered, frieze-like scenes of antiquity with clear, sculptural figures."],["Diego Velázquez","Spanish","1599–1660",1599,"Baroque","baroque","Baroque","Loose, economical brushwork that snaps into focus from a distance, silvery greys and royal sitters."],["Francisco de Zurbarán","Spanish","1598–1664",1598,"Baroque","baroque","Baroque","Stark, silent still lifes and monks, sharply lit against black."],["Rembrandt van Rijn","Dutch","1606–1669",1606,"Dutch Golden Age","dutch","Baroque","Golden light emerging from brown shadow, thick paint and deeply human faces."],["Johannes Vermeer","Dutch","1632–1675",1632,"Dutch Golden Age","dutch","Baroque","Quiet rooms lit from a window on the left, with blue, yellow and pearly highlights."],["Frans Hals","Dutch","c. 1582–1666",1582,"Dutch Golden Age","dutch","Baroque","Quick, slashing brushstrokes and sitters caught mid-laugh."],["Carel Fabritius","Dutch","1622–1654",1622,"Dutch Golden Age","dutch","Baroque","Dark subjects against a pale, sunlit wall, the reverse of his teacher Rembrandt."],["Antoine Watteau","French","1684–1721",1684,"Rococo","rococo","Rococo","Wistful garden parties of silk-clad lovers and actors in feathery parkland."],["Jean-Honoré Fragonard","French","1732–1806",1732,"Rococo","rococo","Rococo","Frothy pinks and greens, playful flirtation and fluffy, overgrown gardens."],["Thomas Gainsborough","English","1727–1788",1727,"British portraiture","rococo","","Feathery brushwork, shimmering fabrics and sitters posed in English landscape."],["Élisabeth Vigée Le Brun","French","1755–1842",1755,"Rococo to Neoclassicism","rococo","","Flattering, fresh-faced portraits with soft light and fashionable dress."],["Joseph Wright of Derby","English","1734–1797",1734,"British Enlightenment painting","neoclass","","Scientific scenes lit by a single candle or lamp, faces glowing in the dark."],["Benjamin West","American-British","1738–1820",1738,"Neoclassicism","neoclass","Neoclassicism","Recent history staged like a classical tragedy, with heroes in modern uniform."],["John Singleton Copley","American","1738–1815",1738,"History painting","neoclass","","Crisp, dramatic storytelling with sharply observed faces and textures."],["Jacques-Louis David","French","1748–1825",1748,"Neoclassicism","neoclass","Neoclassicism","Hard-edged, statue-like figures and stoic virtue in spare, stage-like settings."],["Jean-Auguste-Dominique Ingres","French","1780–1867",1780,"Neoclassicism","neoclass","Neoclassicism","Flawless line, enamel-smooth skin and anatomy bent for the sake of elegance."],["Henry Fuseli","Swiss-British","1741–1825",1741,"Romanticism","romantic","Romanticism","Gothic dreams and nightmares, with theatrical poses, demons and swooning figures."],["William Blake","English","1757–1827",1757,"Romanticism","romantic","Romanticism","Visionary, muscular figures in strong outline, like pages of illuminated prophecy."],["Francisco Goya","Spanish","1746–1828",1746,"Romanticism","romantic","Romanticism","An unflinching look at war, madness and power. The late works are dark and raw."],["Eugène Delacroix","French","1798–1863",1798,"Romanticism","romantic","Romanticism","Turbulent colour and movement, exotic or revolutionary subjects, visible brushwork."],["Théodore Géricault","French","1791–1824",1791,"Romanticism","romantic","Romanticism","Monumental modern tragedy, with straining bodies, horses and dramatic diagonals."],["Caspar David Friedrich","German","1774–1840",1774,"Romanticism","romantic","Romanticism","Lone figures seen from behind, facing fog, ruins, ice or endless sea."],["J. M. W. Turner","English","1775–1851",1775,"Romanticism","romantic","Romanticism","Forms dissolving into vortexes of golden light, steam, sea and storm."],["John Constable","English","1776–1837",1776,"Romanticism","romantic","Romanticism","Suffolk countryside under big, restless clouds, flecked with white highlights."],["Ivan Aivazovsky","Russian","1817–1900",1817,"Romanticism","romantic","Romanticism","Translucent, glowing waves and shipwrecks at sunrise or by moonlight."],["Karl Bryullov","Russian","1799–1852",1799,"Romanticism","romantic","Romanticism","Grand theatrical catastrophe with classically beautiful, spotlit figures."],["Thomas Cole","American","1801–1848",1801,"Hudson River School","american19","Romanticism","Sweeping American wilderness, often split between storm and sunlight."],["Frederic Edwin Church","American","1826–1900",1826,"Hudson River School","american19","Romanticism","Vast panoramas with botanical detail and a theatrical, glowing sky."],["Albert Bierstadt","German-American","1830–1902",1830,"Hudson River School","american19","Romanticism","Towering Western peaks bathed in golden, almost heavenly light."],["Emanuel Leutze","German-American","1816–1868",1816,"History painting","american19","","Patriotic history staged like grand theatre, with heroic poses."],["Katsushika Hokusai","Japanese","1760–1849",1760,"Ukiyo-e","ukiyoe","","Bold outlines, Prussian blue and Mount Fuji framed by wave, cloud or labour."],["Utagawa Hiroshige","Japanese","1797–1858",1797,"Ukiyo-e","ukiyoe","","Rain, snow and dusk rendered as atmosphere, seen from daring, cropped viewpoints."],["Jean-François Millet","French","1814–1875",1814,"Realism (Barbizon School)","realism","Realism","Peasants at work given quiet, monumental dignity in earthy tones."],["Gustave Courbet","French","1819–1877",1819,"Realism","realism","Realism","Ordinary people painted life-size and unidealised, in thick, dark paint."],["Rosa Bonheur","French","1822–1899",1822,"Realism","realism","Realism","Animals observed with anatomical precision and real muscular energy."],["John Everett Millais","English","1829–1896",1829,"Pre-Raphaelite Brotherhood","victorian","","Botanically exact nature, vivid colour and literary heroines."],["John William Waterhouse","English","1849–1917",1849,"Pre-Raphaelite style","victorian","","Pale, red-haired heroines from myth and poetry beside dark water."],["Frederic Leighton","English","1830–1896",1830,"Victorian classicism","victorian","","Classical beauty and sumptuous drapery, polished to a glow."],["Lawrence Alma-Tadema","Dutch-British","1836–1912",1836,"Victorian classicism","victorian","","Ancient Rome at leisure, with dazzling marble, petals and blue Mediterranean sea."],["Jean-Léon Gérôme","French","1824–1904",1824,"Academic art","academic","","Photographically crisp scenes from antiquity or the East, staged like cinema."],["William-Adolphe Bouguereau","French","1825–1905",1825,"Academic art","academic","","Flawless, idealised nudes and cherubs with porcelain skin and no visible brushstroke."],["Alexandre Cabanel","French","1823–1889",1823,"Academic art","academic","","A silky academic finish applied to sensual myth and melodrama."],["James McNeill Whistler","American","1834–1903",1834,"Aestheticism","american-late","","Muted harmonies of grey and black with musical titles, mood before story."],["Ilya Repin","Russian","1844–1930",1844,"Realism (Peredvizhniki)","russian","Realism","Russian life and history with intense psychology in every face."],["Ivan Shishkin","Russian","1832–1898",1832,"Realism (Peredvizhniki)","russian","Realism","Russian forests painted tree by tree with near-photographic care."],["Ivan Kramskoi","Russian","1837–1887",1837,"Realism (Peredvizhniki)","russian","Realism","Sober, penetrating portraits with a direct, searching gaze."],["Viktor Vasnetsov","Russian","1848–1926",1848,"Russian Revival","russian","","Heroes of Russian folklore and epic, painted on a monumental scale."],["Vasily Surikov","Russian","1848–1916",1848,"Realism (Peredvizhniki)","russian","Realism","Crowded turning points of Russian history, full of colour and character."],["Mikhail Vrubel","Russian","1856–1910",1856,"Symbolism","russian","Symbolism","Faceted, mosaic-like brushstrokes and brooding, melancholy demons."],["Thomas Eakins","American","1844–1916",1844,"American Realism","american-late","Realism","Unsparing realism, with surgeons, rowers and sitters under sober, exact light."],["Winslow Homer","American","1836–1910",1836,"American Realism","american-late","Realism","People against the sea in clear light, told directly and without sentiment."],["John Singer Sargent","American","1856–1925",1856,"Gilded Age portraiture","american-late","","Dazzling, fluid brushwork and high-society sitters with effortless glamour."],["Arnold Böcklin","Swiss","1827–1901",1827,"Symbolism","symbolism","Symbolism","Mythic, dreamlike scenes heavy with silence, cypresses and death."],["Hugo Simberg","Finnish","1873–1917",1873,"Symbolism","symbolism","Symbolism","Simple, folk-like scenes of angels, devils and death, told with odd tenderness."],["Édouard Manet","French","1832–1883",1832,"Realism to Impressionism","impress","","Flat, frontal lighting, bold blacks and modern Parisians who stare straight back."],["Claude Monet","French","1840–1926",1840,"Impressionism","impress","Impressionism","Broken dabs of colour chasing light on water, haystacks, gardens and fog."],["Pierre-Auguste Renoir","French","1841–1919",1841,"Impressionism","impress","Impressionism","Feathery, rosy brushwork and sun-dappled crowds enjoying themselves."],["Edgar Degas","French","1834–1917",1834,"Impressionism","impress","Impressionism","Ballet dancers and café scenes cropped off-centre, like a snapshot."],["Gustave Caillebotte","French","1848–1894",1848,"Impressionism","impress","Impressionism","Crisp modern Paris seen in plunging, wide-angle perspective."],["Berthe Morisot","French","1841–1895",1841,"Impressionism","impress","Impressionism","Light, sketchy strokes and intimate domestic scenes of women and children."],["Mary Cassatt","American","1844–1926",1844,"Impressionism","impress","Impressionism","Mothers and children in flattened, patterned compositions inspired by Japanese prints."],["Camille Pissarro","French","1830–1903",1830,"Impressionism","impress","Impressionism","Boulevards and village lanes seen from a high window, built from small, even touches."],["Vincent van Gogh","Dutch","1853–1890",1853,"Post-Impressionism","postimp","Post-Impressionism","Thick, swirling strokes of pure colour, with blazing yellows against deep blues."],["Georges Seurat","French","1859–1891",1859,"Neo-Impressionism (Pointillism)","postimp","Post-Impressionism","Thousands of tiny dots of pure colour, and figures as still as statues."],["Paul Cézanne","French","1839–1906",1839,"Post-Impressionism","postimp","Post-Impressionism","Parallel, blocky strokes that build apples, mountains and bathers out of planes."],["Paul Gauguin","French","1848–1903",1848,"Post-Impressionism","postimp","Post-Impressionism","Flat areas of unnatural colour with dark outlines, in Brittany and then Tahiti."],["Henri de Toulouse-Lautrec","French","1864–1901",1864,"Post-Impressionism","postimp","Post-Impressionism","Montmartre nightlife in sharp silhouette, odd angles and sickly green light."],["Henri Rousseau","French","1844–1910",1844,"Naïve art","postimp","Post-Impressionism","Dreamlike jungles with every leaf outlined, flat and toy-like."],["Edvard Munch","Norwegian","1863–1944",1863,"Symbolism to Expressionism","symbolism","Expressionism","Wavy lines and raw colour that turn anxiety, illness and love into landscape."],["Gustav Klimt","Austrian","1862–1918",1862,"Vienna Secession","symbolism","Symbolism","Gold leaf and mosaic-like pattern wrapped around sensuous, realistic faces."],["Henri Matisse","French","1869–1954",1869,"Fauvism","modern","","Pure, flat, joyful colour and simplified shapes bounded by sinuous line."],["Wassily Kandinsky","Russian","1866–1944",1866,"Abstract art","modern","Abstract art","Abstract colour and line arranged like music, turning to crisp geometry in later years."],["Kazimir Malevich","Russian","1879–1935",1879,"Suprematism","modern","Abstract art","Plain geometric shapes floating on white, painting reduced to zero."],["Piet Mondrian","Dutch","1872–1944",1872,"De Stijl","modern","Abstract art","Black grids with blocks of red, blue and yellow on white."],["Paul Klee","Swiss-German","1879–1940",1879,"Bauhaus modernism","modern","","Childlike signs, wiry line and patchwork colour with playful wit."],["Franz Marc","German","1880–1916",1880,"Expressionism (Der Blaue Reiter)","expression","Expressionism","Animals in prismatic, symbolic colour, such as blue horses and yellow cows."],["Egon Schiele","Austrian","1890–1918",1890,"Expressionism","expression","Expressionism","Angular, emaciated figures and nervous contour lines, often unsparing self-portraits."],["Ernst Ludwig Kirchner","German","1880–1938",1880,"Expressionism (Die Brücke)","expression","Expressionism","Jagged city crowds in clashing, acidic colour with mask-like faces."],["Juan Gris","Spanish","1887–1927",1887,"Cubism","modern","","Crisp, crystalline Cubist facets in cool blues and greys."],["Umberto Boccioni","Italian","1882–1916",1882,"Futurism","modern","","Speed and force, with forms blurred and shattered by motion."],["Grant Wood","American","1891–1942",1891,"Regionalism","american20","","Rounded, stylised Midwestern farmland and stern, sharply drawn faces."],["George Bellows","American","1882–1925",1882,"Ashcan School","american20","","Gritty New York energy, with boxers and crowds in slashing brushwork."]],"works":[["giotto-lamentation","Lamentation (The Mourning of Christ)",0,1305,1,"Scrovegni Chapel, Padua",2,0,1.064,"Compianto sul Cristo morto.jpg"],["masaccio-the-tribute-money","The Tribute Money",1,1425,1,"Brancacci Chapel, Florence",3,0,2.166,"The Tribute Money by Masaccio.jpg"],["masaccio-holy-trinity","Holy Trinity",1,1427,1,"Santa Maria Novella, Florence",3,0,0.535,"Masaccio - Trinity - Santa Maria Novella.jpg"],["uccello-the-battle-of-san-romano","The Battle of San Romano",2,1438,1,"One of three panels, now in London, Florence and Paris",3,0,1.78,"Uccello — the Battle of San Romano.jpg"],["francesca-the-flagellation-of-christ","The Flagellation of Christ",3,1460,1,"Galleria Nazionale delle Marche, Urbino",3,0,1.423,"Piero della Francesca Flagellazione-gndm-full.jpg"],["francesca-the-baptism-of-christ","The Baptism of Christ",3,1450,1,"National Gallery, London",3,0,0.696,"Piero della Francesca - Battesimo di Cristo (National Gallery, London).jpg"],["mantegna-lamentation-over-the-dead-christ","Lamentation over the Dead Christ",4,1480,1,"Pinacoteca di Brera, Milan",2,0,1.183,"Lamentación sobre Cristo muerto, por Andrea Mantegna.jpg"],["botticelli-the-birth-of-venus","The Birth of Venus",5,1485,1,"Uffizi, Florence",1,0,1.594,"Sandro Botticelli - La nascita di Venere - Google Art Project - edited.jpg"],["botticelli-primavera","Primavera",5,1480,1,"Uffizi, Florence",1,0,1.506,"Sandro Botticelli - La Primavera - Google Art Project.jpg"],["vinci-mona-lisa","Mona Lisa",7,1503,1,"Louvre, Paris",1,0,0.671,"Mona Lisa, by Leonardo da Vinci, from C2RMF retouched.jpg"],["vinci-the-last-supper","The Last Supper",7,1498,1,"Santa Maria delle Grazie, Milan",1,0,1.92,"Leonardo da Vinci (1452-1519) - The Last Supper (1495-1498).jpg"],["vinci-lady-with-an-ermine","Lady with an Ermine",7,1490,1,"Czartoryski Museum, Kraków",2,0,0.743,"Lady with an Ermine - Leonardo da Vinci - Google Art Project.jpg"],["vinci-the-virgin-of-the-rocks","The Virgin of the Rocks",7,1486,1,"Louvre, Paris",2,0,0.63,"Leonardo Da Vinci - Vergine delle Rocce (Louvre).jpg"],["vinci-ginevra-de-benci","Ginevra de' Benci",7,1476,1,"National Gallery of Art, Washington",3,0,0.969,"Ginevra de' Benci - National Gallery of Art.jpg"],["vinci-salvator-mundi","Salvator Mundi",7,1500,1,"Private collection",2,0,0.679,"Leonardo da Vinci, Salvator Mundi, c.1500, oil on walnut, 45.4 × 65.6 cm.jpg"],["raphael-the-school-of-athens","The School of Athens",8,1511,0,"Apostolic Palace, Vatican City",1,0,1.289,"\"The School of Athens\" by Raffaello Sanzio da Urbino.jpg"],["raphael-the-sistine-madonna","The Sistine Madonna",8,1513,1,"Gemäldegalerie Alte Meister, Dresden",2,0,0.736,"Raphael - The Sistine Madonna - Google Arts & Culture.jpg"],["raphael-the-transfiguration","The Transfiguration",8,1520,0,"Pinacoteca Vaticana, Vatican City",3,0,0.663,"Transfiguration Raphael.jpg"],["raphael-portrait-of-baldassare-castiglione","Portrait of Baldassare Castiglione",8,1515,1,"Louvre, Paris",3,0,0.804,"Baldassare Castiglione, by Raffaello Sanzio, from C2RMF retouched.jpg"],["raphael-the-triumph-of-galatea","The Triumph of Galatea",8,1512,1,"Villa Farnesina, Rome",3,0,0.762,"Raffael 012.jpg"],["michelangelo-the-creation-of-adam","The Creation of Adam",9,1512,1,"Sistine Chapel, Vatican City",1,0,2.151,"The Creation of Adam perspective fix.jpg"],["michelangelo-the-last-judgment","The Last Judgment",9,1541,0,"Sistine Chapel, Vatican City",2,0,0.907,"Last Judgement (Michelangelo).jpg"],["michelangelo-doni-tondo","Doni Tondo",9,1507,1,"Uffizi, Florence",3,0,0.971,"Tondo Doni 2015.png"],["titian-venus-of-urbino","Venus of Urbino",10,1538,0,"Uffizi, Florence",2,0,1.412,"Tiziano's Venere di Urbino (from The History BLog).jpg"],["titian-bacchus-and-ariadne","Bacchus and Ariadne",10,1523,1,"National Gallery, London",2,0,1.106,"Titian Bacchus and Ariadne.jpg"],["titian-assumption-of-the-virgin","Assumption of the Virgin",10,1518,0,"Basilica dei Frari, Venice",3,0,0.543,"Tizian 041.jpg"],["giorgione-the-tempest","The Tempest",11,1508,1,"Gallerie dell'Accademia, Venice",2,0,0.901,"Giorgione - Das Gewitter.jpg"],["giorgione-sleeping-venus","Sleeping Venus",11,1510,1,"Gemäldegalerie Alte Meister, Dresden",3,0,1.624,"Giorgione - Sleeping Venus - Google Art Project 2.jpg"],["bellini-the-feast-of-the-gods","The Feast of the Gods",6,1514,0,"National Gallery of Art, Washington",3,0,1.081,"Giovanni Bellini and Titian - The Feast of the Gods - Google Art Project.jpg"],["bellini-portrait-of-doge-leonardo-loredan","Portrait of Doge Leonardo Loredan",6,1501,1,"National Gallery, London",3,0,0.713,"Giovanni Bellini, portrait of Doge Leonardo Loredan.jpg"],["veronese-the-wedding-at-cana","The Wedding at Cana",12,1563,0,"Louvre, Paris",2,0,1.494,"Les Noces de Cana - Paolo Veronese - Musée du Louvre Peintures INV 142 ; MR 384.jpg"],["parmigianino-madonna-with-the-long-neck","Madonna with the Long Neck",13,1540,1,"Uffizi, Florence",2,0,0.637,"Parmigianino - Madonna and Child with Angels, known as the Madonna with the Long Neck.jpg"],["bronzino-venus-cupid-folly-and-time","Venus, Cupid, Folly and Time",14,1545,1,"National Gallery, London",3,0,0.792,"Angelo Bronzino - Venus, Cupid, Folly and Time - National Gallery, London.jpg"],["arcimboldo-vertumnus","Vertumnus",15,1591,0,"Skokloster Castle, Sweden",2,0,0.807,"Vertumnus årstidernas gud målad av Giuseppe Arcimboldo 1591 - Skoklosters slott - 91503.jpg"],["eyck-the-arnolfini-portrait","The Arnolfini Portrait",17,1434,0,"National Gallery, London",1,0,0.731,"Van Eyck - Arnolfini Portrait.jpg"],["eyck-the-ghent-altarpiece","The Ghent Altarpiece",17,1432,0,"St Bavo's Cathedral, Ghent",2,0,1.356,"Ghent Altarpiece Google Art Project.jpg"],["eyck-madonna-of-chancellor-rolin","Madonna of Chancellor Rolin",17,1435,1,"Louvre, Paris",3,0,0.963,"The Virgin with Chancellor Rolin by Jan van Eyck (Louvre).webp"],["weyden-the-descent-from-the-cross","The Descent from the Cross",18,1435,1,"Prado, Madrid",2,0,1.289,"El Descendimiento, by Rogier van der Weyden, from Prado in Google Earth.jpg"],["bosch-the-garden-of-earthly-delights","The Garden of Earthly Delights",19,1500,1,"Prado, Madrid",1,0,1.773,"The Garden of Earthly Delights by Bosch High Resolution 2.jpg"],["bosch-the-haywain-triptych","The Haywain Triptych",19,1516,1,"Prado, Madrid",3,0,1.427,"Bosch - Haywain Triptych (1512-1515).jpg"],["bosch-ship-of-fools","Ship of Fools",19,1500,1,"Louvre, Paris",3,0,0.536,"Jheronimus Bosch 011.jpg"],["durer-self-portrait-at-twenty-eight","Self-Portrait at Twenty-Eight",20,1500,0,"Alte Pinakothek, Munich",2,0,0.709,"Dürer Alte Pinakothek.jpg"],["durer-young-hare","Young Hare",20,1502,0,"Albertina, Vienna",2,0,0.905,"Albrecht Dürer - Hare, 1502 - Google Art Project.jpg"],["grunewald-the-isenheim-altarpiece","The Isenheim Altarpiece",21,1515,1,"Unterlinden Museum, Colmar",3,0,1.278,"Isenheim Altarpiece - In situ (cropped).jpg"],["younger-the-ambassadors","The Ambassadors",22,1533,0,"National Gallery, London",2,0,1.015,"Hans Holbein the Younger - The Ambassadors - Google Art Project.jpg"],["elder-the-hunters-in-the-snow","The Hunters in the Snow",23,1565,0,"Kunsthistorisches Museum, Vienna",2,0,1.405,"Pieter Bruegel the Elder - Hunters in the Snow (Winter) - Google Art Project.jpg"],["elder-the-tower-of-babel","The Tower of Babel",23,1563,0,"Kunsthistorisches Museum, Vienna",1,0,1.367,"Pieter Bruegel the Elder - The Tower of Babel (Vienna) - Google Art Project - edited.jpg"],["elder-netherlandish-proverbs","Netherlandish Proverbs",23,1559,0,"Gemäldegalerie, Berlin",2,0,1.402,"Pieter Bruegel (der Ältere) (ca. 1525 - 1569) - Die niederländischen Sprichwörter - 1720 - Gemäldegalerie.jpg"],["elder-the-peasant-wedding","The Peasant Wedding",23,1567,0,"Kunsthistorisches Museum, Vienna",2,0,1.448,"Pieter Bruegel the Elder - Peasant Wedding - Google Art Project.jpg"],["elder-the-triumph-of-death","The Triumph of Death",23,1562,1,"Prado, Madrid",2,0,1.402,"The Triumph of Death by Pieter Bruegel the Elder.jpg"],["elder-children-s-games","Children's Games",23,1560,0,"Kunsthistorisches Museum, Vienna",3,0,1.376,"Pieter Bruegel the Elder - Children’s Games - Google Art Project.jpg"],["greco-the-burial-of-the-count-of-orgaz","The Burial of the Count of Orgaz",16,1586,0,"Church of Santo Tomé, Toledo",2,0,0.816,"El Greco - The Burial of the Count of Orgaz.JPG"],["greco-view-of-toledo","View of Toledo",16,1599,1,"Metropolitan Museum of Art, New York",2,0,0.886,"El Greco View of Toledo.jpg"],["greco-the-opening-of-the-fifth-seal","The Opening of the Fifth Seal",16,1614,1,"Metropolitan Museum of Art, New York",3,0,0.888,"El Greco, The Vision of Saint John (1608-1614).jpg"],["caravaggio-bacchus","Bacchus",24,1596,1,"Uffizi, Florence",2,0,0.858,"Bacchus by Caravaggio 1.jpg"],["caravaggio-the-calling-of-saint-matthew","The Calling of Saint Matthew",24,1600,0,"San Luigi dei Francesi, Rome",2,0,1.059,"Caravaggio — The Calling of Saint Matthew.jpg"],["caravaggio-judith-beheading-holofernes","Judith Beheading Holofernes",24,1599,1,"Palazzo Barberini, Rome",2,0,1.348,"Caravaggio Judith Beheading Holofernes.jpg"],["caravaggio-the-supper-at-emmaus","The Supper at Emmaus",24,1601,0,"National Gallery, London",2,0,1.405,"Caravaggio - Supper at Emmaus - National Gallery London.jpeg"],["caravaggio-medusa","Medusa",24,1597,1,"Uffizi, Florence",2,0,0.975,"Caravaggio - Medusa - Google Art Project.jpg"],["caravaggio-the-cardsharps","The Cardsharps",24,1594,1,"Kimbell Art Museum, Fort Worth",3,0,1.392,"Caravaggio - The Cardsharps (1596-97) Kimbell Art Museum.jpg"],["caravaggio-david-with-the-head-of-goliath","David with the Head of Goliath",24,1610,1,"Galleria Borghese, Rome",3,0,0.807,"David with the Head of Goliath-Caravaggio (1610).jpg"],["caravaggio-narcissus","Narcissus",24,1599,1,"Palazzo Barberini, Rome",3,0,0.853,"Caravaggio - Narciso (1597-1599).jpg"],["gentileschi-judith-slaying-holofernes","Judith Slaying Holofernes",25,1612,1,"Museo di Capodimonte, Naples",2,0,0.785,"Artemisia Gentileschi - Judith Beheading Holofernes - WGA8563.jpg"],["gentileschi-self-portrait-as-the-allegory-of-pai","Self-Portrait as the Allegory of Painting",25,1639,1,"Royal Collection, United Kingdom",3,0,0.757,"Self-Portrait as the Allegory of Painting (La Pittura) - Artemisia Gentileschi.jpg"],["rubens-the-elevation-of-the-cross","The Elevation of the Cross",26,1611,0,"Cathedral of Our Lady, Antwerp",3,0,1.356,"Peter Paul Rubens - Raising of the Cross (Cathedral of Antwerp).jpg"],["rubens-the-judgement-of-paris","The Judgement of Paris",26,1639,1,"Prado, Madrid",3,0,1.92,"Peter Paul Rubens 115.jpg"],["dyck-charles-i-at-the-hunt","Charles I at the Hunt",27,1635,1,"Louvre, Paris",3,0,0.772,"Portrait de Charles 1er, roi d'Angleterre, à la chasse - Antoon van Dyck - Musée du Louvre Peintures INV 1236 ; MR 666.jpg"],["poussin-et-in-arcadia-ego","Et in Arcadia ego",28,1638,1,"Louvre, Paris",3,0,0.718,"Nicolas Poussin - Et in Arcadia ego (première version).jpg"],["rijn-the-night-watch","The Night Watch",31,1642,0,"Rijksmuseum, Amsterdam",1,0,1.23,"La ronda de noche, por Rembrandt van Rijn.jpg"],["rijn-the-anatomy-lesson-of-dr-nicolaes-tulp","The Anatomy Lesson of Dr. Nicolaes Tulp",31,1632,0,"Mauritshuis, The Hague",2,0,1.329,"Rembrandt - The Anatomy Lesson of Dr Nicolaes Tulp.jpg"],["rijn-the-return-of-the-prodigal-son","The Return of the Prodigal Son",31,1669,1,"Hermitage Museum, St Petersburg",2,0,0.766,"Rembrandt Harmensz van Rijn - Return of the Prodigal Son - Google Art Project.jpg"],["rijn-the-storm-on-the-sea-of-galilee","The Storm on the Sea of Galilee",31,1633,0,"Stolen in 1990 from the Isabella Stewart Gardner Museum, Boston",2,0,0.804,"Rembrandt Christ in the Storm on the Lake of Galilee.jpg"],["rijn-the-jewish-bride","The Jewish Bride",31,1667,1,"Rijksmuseum, Amsterdam",3,0,1.373,"Rembrandt Harmensz. van Rijn - Portret van een paar als oudtestamentische figuren, genaamd 'Het Joodse bruidje' - Google Art Project.jpg"],["rijn-self-portrait-with-two-circles","Self-Portrait with Two Circles",31,1665,1,"Kenwood House, London",3,0,0.829,"Rembrandt Self-portrait (Kenwood).jpg"],["rijn-the-syndics-of-the-drapers-guild","The Syndics of the Drapers' Guild",31,1662,0,"Rijksmuseum, Amsterdam",3,0,1.48,"Rembrandt - De Staalmeesters- het college van staalmeesters (waardijns) van het Amsterdamse lakenbereidersgilde - Google Art Project.jpg"],["rijn-belshazzar-s-feast","Belshazzar's Feast",31,1636,1,"National Gallery, London",3,0,1.257,"Rembrandt-Belsazar.jpg"],["vermeer-girl-with-a-pearl-earring","Girl with a Pearl Earring",32,1665,1,"Mauritshuis, The Hague",1,0,0.844,"1665 Girl with a Pearl Earring.jpg"],["vermeer-the-milkmaid","The Milkmaid",32,1658,1,"Rijksmuseum, Amsterdam",1,0,0.892,"Johannes Vermeer - Het melkmeisje - Google Art Project.jpg"],["vermeer-view-of-delft","View of Delft",32,1661,1,"Mauritshuis, The Hague",2,0,1.2,"Johannes Vermeer - View of Delft - 92 - Mauritshuis.jpg"],["vermeer-the-art-of-painting","The Art of Painting",32,1667,1,"Kunsthistorisches Museum, Vienna",2,0,0.842,"Jan Vermeer - The Art of Painting - Google Art Project.jpg"],["vermeer-the-astronomer","The Astronomer",32,1668,0,"Louvre, Paris",3,0,0.88,"Johannes Vermeer - The Astronomer - 1668.jpg"],["vermeer-the-little-street","The Little Street",32,1658,1,"Rijksmuseum, Amsterdam",3,0,0.807,"Johannes Vermeer - Gezicht op huizen in Delft, bekend als 'Het straatje' - Google Art Project.jpg"],["vermeer-woman-holding-a-balance","Woman Holding a Balance",32,1663,1,"National Gallery of Art, Washington",3,0,0.884,"Johannes Vermeer - Woman Holding a Balance - Google Art Project.jpg"],["vermeer-the-lacemaker","The Lacemaker",32,1670,1,"Louvre, Paris",3,0,0.872,"Johannes Vermeer - The lacemaker (c.1669-1671).jpg"],["hals-the-laughing-cavalier","The Laughing Cavalier",33,1624,0,"Wallace Collection, London",2,0,0.818,"Frans Hals – The Laughing Cavalier.jpg"],["fabritius-the-goldfinch","The Goldfinch",34,1654,0,"Mauritshuis, The Hague",2,0,0.655,"Carel Fabritius - The Goldfinch - 605 - Mauritshuis.jpg"],["velazquez-las-meninas","Las Meninas",29,1656,0,"Prado, Madrid",1,0,0.868,"Las Meninas, by Diego Velázquez, from Prado in Google Earth.jpg"],["velazquez-the-rokeby-venus","The Rokeby Venus",29,1650,1,"National Gallery, London",2,0,1.458,"Diego Velázquez - Rokeby Venus.jpg"],["velazquez-portrait-of-pope-innocent-x","Portrait of Pope Innocent X",29,1650,1,"Galleria Doria Pamphilj, Rome",2,0,0.833,"Diego Velázquez, Portrait du pape Innocent X, 1650, huile sur toile, 140 × 120 cm, Rome, Galleria Doria Pamphilj (inv. 237).jpg"],["velazquez-the-surrender-of-breda","The Surrender of Breda",29,1635,1,"Prado, Madrid",3,0,1.212,"Velazquez-The Surrender of Breda.jpg"],["velazquez-the-triumph-of-bacchus","The Triumph of Bacchus",29,1629,1,"Prado, Madrid",3,0,1.371,"Velázquez - El Triunfo de Baco o Los Borrachos (Museo del Prado, 1628-29).jpg"],["velazquez-las-hilanderas","Las Hilanderas (The Spinners)",29,1657,1,"Prado, Madrid",3,0,1.449,"Velazquez-las hilanderas.jpg"],["zurbaran-agnus-dei","Agnus Dei",30,1640,1,"Prado, Madrid",3,0,1.688,"Francisco de Zurbarán 006.jpg"],["watteau-the-embarkation-for-cythera","The Embarkation for Cythera",35,1717,0,"Louvre, Paris",3,0,1.527,"L'Embarquement pour Cythère, by Antoine Watteau, from C2RMF retouched.jpg"],["watteau-pierrot","Pierrot",35,1719,1,"Louvre, Paris",3,0,0.841,"Pierrot - Antoine Watteau - Musée du Louvre Peintures MI 1121 - après restauration 2024.jpg"],["fragonard-the-swing","The Swing",36,1767,1,"Wallace Collection, London",1,0,0.797,"Fragonard, The Swing.jpg"],["gainsborough-the-blue-boy","The Blue Boy",37,1770,1,"The Huntington, San Marino, California",2,0,0.688,"Thomas Gainsborough - The Blue Boy (c. 1770).jpg"],["gainsborough-mr-and-mrs-andrews","Mr and Mrs Andrews",37,1750,1,"National Gallery, London",3,0,1.707,"Thomas Gainsborough - Mr. und Mrs. Andrews (c. 1750).jpg"],["derby-an-experiment-on-a-bird-in-the-air-pump","An Experiment on a Bird in the Air Pump",39,1768,0,"National Gallery, London",2,0,1.335,"An Experiment on a Bird in an Air Pump by Joseph Wright of Derby, 1768.jpg"],["west-the-death-of-general-wolfe","The Death of General Wolfe",40,1770,0,"National Gallery of Canada, Ottawa",3,0,1.502,"Benjamin West 005.jpg"],["copley-watson-and-the-shark","Watson and the Shark",41,1778,0,"National Gallery of Art, Washington",3,0,1.262,"Watsonandtheshark-original.jpg"],["fuseli-the-nightmare","The Nightmare",44,1781,0,"Detroit Institute of Arts",2,0,1.235,"John Henry Fuseli - The Nightmare.JPG"],["david-the-death-of-marat","The Death of Marat",42,1793,0,"Royal Museums of Fine Arts of Belgium, Brussels",1,0,0.777,"Jacques-Louis David - Marat assassinated - Google Art Project 2.jpg"],["david-the-oath-of-the-horatii","The Oath of the Horatii",42,1784,0,"Louvre, Paris",2,0,1.289,"Le Serment des Horaces - Jacques-Louis David - Musée du Louvre Peintures INV 3692 ; MR 1432.jpg"],["david-napoleon-crossing-the-alps","Napoleon Crossing the Alps",42,1801,0,"Château de Malmaison, France",1,0,0.821,"David - Napoleon crossing the Alps - Malmaison2.jpg"],["david-the-coronation-of-napoleon","The Coronation of Napoleon",42,1807,0,"Louvre, Paris",2,0,1.609,"Le Sacre de Napoléon - Jacques-Louis David - Musée du Louvre Peintures INV 3699 ; MR 1437.jpg"],["david-the-death-of-socrates","The Death of Socrates",42,1787,0,"Metropolitan Museum of Art, New York",2,0,1.504,"The Death of Socrates MET DP-13139-001.jpg"],["brun-self-portrait-in-a-straw-hat","Self-Portrait in a Straw Hat",38,1782,0,"National Gallery, London",3,0,0.72,"Self-portrait in a Straw Hat by Elisabeth-Louise Vigée-Lebrun.jpg"],["blake-the-ancient-of-days","The Ancient of Days",45,1794,0,"Relief etching; copies in several collections",2,0,0.738,"Europe a Prophecy copy K plate 01.jpg"],["blake-newton","Newton",45,1795,0,"Tate Britain, London",3,0,1.3,"Newton-WilliamBlake.jpg"],["goya-the-third-of-may-1808","The Third of May 1808",46,1814,0,"Prado, Madrid",1,0,1.31,"Francisco de Goya y Lucientes - Los fusilamientos del tres de mayo - 1814.jpg"],["goya-saturn-devouring-his-son","Saturn Devouring His Son",46,1823,1,"Prado, Madrid",1,0,0.544,"Francisco de Goya, Saturno devorando a su hijo (1819-1823).jpg"],["goya-the-clothed-maja","The Clothed Maja",46,1805,1,"Prado, Madrid",2,0,1.99,"Goya Maja ubrana2.jpg"],["goya-the-dog","The Dog",46,1823,1,"Prado, Madrid",3,1,0.589,"Goya Dog.jpg"],["goya-charles-iv-of-spain-and-his-family","Charles IV of Spain and His Family",46,1801,0,"Prado, Madrid",3,0,1.199,"La familia de Carlos IV, por Francisco de Goya.jpg"],["delacroix-liberty-leading-the-people","Liberty Leading the People",47,1830,0,"Louvre, Paris",1,0,1.25,"La Liberté guidant le peuple - Eugène Delacroix - Musée du Louvre Peintures RF 129 - après restauration 2024.jpg"],["delacroix-the-death-of-sardanapalus","The Death of Sardanapalus",47,1827,0,"Louvre, Paris",3,0,1.278,"La Mort de Sardanapale - Eugène Delacroix - Musée du Louvre Peintures RF 2346.jpg"],["gericault-the-raft-of-the-medusa","The Raft of the Medusa",48,1819,0,"Louvre, Paris",1,0,1.465,"JEAN LOUIS THÉODORE GÉRICAULT - La Balsa de la Medusa (Museo del Louvre, 1818-19).jpg"],["friedrich-wanderer-above-the-sea-of-fog","Wanderer above the Sea of Fog",49,1818,1,"Hamburger Kunsthalle, Hamburg",1,0,0.784,"Friedrich, Caspar David - Wanderer über dem Nebelmeer.jpg"],["friedrich-the-sea-of-ice","The Sea of Ice",49,1824,0,"Hamburger Kunsthalle, Hamburg",3,0,1.32,"Friedrich, Caspar David - Eismeer.jpg"],["friedrich-chalk-cliffs-on-rugen","Chalk Cliffs on Rügen",49,1818,0,"Kunst Museum Winterthur, Switzerland",3,0,0.783,"Friedrich, Caspar David - Kreidefelsen auf Rügen.jpg"],["friedrich-the-abbey-in-the-oakwood","The Abbey in the Oakwood",49,1810,0,"Alte Nationalgalerie, Berlin",3,0,1.562,"Caspar David Friedrich - Abtei im Eichwald - Google Art Project.jpg"],["friedrich-the-monk-by-the-sea","The Monk by the Sea",49,1810,0,"Alte Nationalgalerie, Berlin",3,1,1.556,"Friedrich, Caspar David - Mönch am Meer - Alte Nationalgalerie in Berlin.jpg"],["turner-the-fighting-temeraire","The Fighting Temeraire",50,1839,0,"National Gallery, London",2,0,1.348,"Turner, J. M. W. - The Fighting Téméraire tugged to her last Berth to be broken.jpg"],["turner-rain-steam-and-speed","Rain, Steam and Speed",50,1844,0,"National Gallery, London",2,0,1.332,"J. M. W. Turner - Rain, Steam and Speed – The Great Western Railway.jpg"],["turner-the-slave-ship","The Slave Ship",50,1840,0,"Museum of Fine Arts, Boston",2,0,1.332,"Slave-ship.jpg"],["constable-the-hay-wain","The Hay Wain",51,1821,0,"National Gallery, London",2,0,1.449,"John Constable - The Hay Wain (1821).jpg"],["ingres-la-grande-odalisque","La Grande Odalisque",43,1814,0,"Louvre, Paris",2,0,1.794,"La grande odalisque - Jean-Auguste Dominique Ingres - Musée du Louvre Peintures RF 1158.jpg"],["ingres-the-turkish-bath","The Turkish Bath",43,1862,0,"Louvre, Paris",3,0,1.005,"Le Bain Turc, by Jean Auguste Dominique Ingres, from C2RMFFXD.jpg"],["ingres-napoleon-i-on-his-imperial-throne","Napoleon I on His Imperial Throne",43,1806,0,"Musée de l'Armée, Paris",3,0,0.608,"Ingres, Napoleon on his Imperial throne.jpg"],["aivazovsky-the-ninth-wave","The Ninth Wave",52,1850,0,"Russian Museum, St Petersburg",2,0,1.489,"Hovhannes Aivazovsky - The Ninth Wave - Google Art Project.jpg"],["bryullov-the-last-day-of-pompeii","The Last Day of Pompeii",53,1833,0,"Russian Museum, St Petersburg",3,0,1.423,"Karl Brullov - The Last Day of Pompeii - Google Art Project.jpg"],["cole-the-oxbow","The Oxbow",54,1836,0,"Metropolitan Museum of Art, New York",3,0,1.472,"Cole Thomas The Oxbow (The Connecticut River near Northampton 1836).jpg"],["church-the-heart-of-the-andes","The Heart of the Andes",55,1859,0,"Metropolitan Museum of Art, New York",3,0,1.826,"Church Heart of the Andes.jpg"],["bierstadt-among-the-sierra-nevada-california","Among the Sierra Nevada, California",56,1868,0,"Smithsonian American Art Museum, Washington",3,0,1.667,"Bierstadt - Among the Sierra Nevada Mountains - 1868.jpg"],["leutze-washington-crossing-the-delaware","Washington Crossing the Delaware",57,1851,0,"Metropolitan Museum of Art, New York",1,0,1.707,"Washington Crossing the Delaware MET DP215410.jpg"],["hokusai-the-great-wave-off-kanagawa","The Great Wave off Kanagawa",58,1831,1,"Woodblock print; impressions in many collections",1,0,1.418,"Katsushika Hokusai - The Great Wave off the Coast of Kanagawa LCCN2008660568.jpg"],["hokusai-fine-wind-clear-morning","Fine Wind, Clear Morning",58,1831,1,"Woodblock print; impressions in many collections",3,0,1.481,"Katsushika Hokusai - Fine Wind, Clear Morning (Gaifū kaisei) - Google Art Project.jpg"],["hiroshige-sudden-shower-over-shin-ohashi-bridge","Sudden Shower over Shin-Ōhashi Bridge and Atake",59,1857,0,"Woodblock print; impressions in many collections",3,0,0.685,"Utagawa Hiroshige - Evening Shower at Atake and the Great Bridge.jpg"],["millet-the-gleaners","The Gleaners",60,1857,0,"Musée d'Orsay, Paris",2,0,1.336,"Jean-François Millet - Des glaneuses.jpg"],["millet-the-angelus","The Angelus",60,1859,1,"Musée d'Orsay, Paris",2,0,1.204,"JEAN-FRANÇOIS MILLET - El Ángelus (Museo de Orsay, 1857-1859. Óleo sobre lienzo, 55.5 x 66 cm).jpg"],["courbet-the-stone-breakers","The Stone Breakers",61,1849,0,"Destroyed in 1945; formerly in Dresden",3,0,1.639,"Gustave Courbet 018.jpg"],["courbet-a-burial-at-ornans","A Burial at Ornans",61,1850,0,"Musée d'Orsay, Paris",3,0,2.178,"Gustave Courbet - A Burial at Ornans - Google Art Project.jpg"],["courbet-the-desperate-man","The Desperate Man",61,1845,1,"Privately held for most of its history",2,0,1.222,"Gustave Courbet - Le Désespéré (1843).jpg"],["courbet-the-painter-s-studio","The Painter's Studio",61,1855,0,"Musée d'Orsay, Paris",3,0,1.697,"Courbet LAtelier du peintre.jpg"],["bonheur-the-horse-fair","The Horse Fair",62,1855,0,"Metropolitan Museum of Art, New York",3,0,2.113,"Rosa Bonheur, The Horse Fair, 1852–55.jpg"],["millais-ophelia","Ophelia",63,1852,0,"Tate Britain, London",1,0,1.471,"John Everett Millais - Ophelia - Google Art Project.jpg"],["waterhouse-the-lady-of-shalott","The Lady of Shalott",64,1888,0,"Tate Britain, London",2,0,1.304,"John William Waterhouse - The Lady of Shalott - Google Art Project.jpg"],["waterhouse-hylas-and-the-nymphs","Hylas and the Nymphs",64,1896,0,"Manchester Art Gallery",3,0,1.664,"John William Waterhouse - Hylas and the Nymphs (1896, Manchester Art Gallery).jpg"],["leighton-flaming-june","Flaming June",65,1895,0,"Museo de Arte de Ponce, Puerto Rico",2,0,0.999,"Flaming June, by Frederic Lord Leighton (1830-1896).jpg"],["alma-tadema-the-roses-of-heliogabalus","The Roses of Heliogabalus",66,1888,0,"Pérez Simón Collection, Mexico City",3,0,1.626,"The Roses of Heliogabalus.jpg"],["gerome-pollice-verso","Pollice Verso",67,1872,0,"Phoenix Art Museum",3,0,1.489,"Jean-Leon Gerome Pollice Verso.jpg"],["bouguereau-the-birth-of-venus","The Birth of Venus",68,1879,0,"Musée d'Orsay, Paris",3,0,0.708,"William-Adolphe Bouguereau (1825-1905) - The Birth of Venus (1879).jpg"],["cabanel-the-birth-of-venus","The Birth of Venus",69,1863,0,"Musée d'Orsay, Paris",3,0,1.762,"Alexandre Cabanel - The Birth of Venus - Google Art Project 2.jpg"],["cabanel-the-fallen-angel","The Fallen Angel",69,1847,0,"Musée Fabre, Montpellier",2,0,1.577,"Fallen Angel (Alexandre Cabanel).jpg"],["whistler-arrangement-in-grey-and-black-no-1","Arrangement in Grey and Black No. 1 (Whistler's Mother)",70,1871,0,"Musée d'Orsay, Paris",1,0,1.124,"Whistlers Mother high res.jpg"],["whistler-nocturne-in-black-and-gold-the-falling","Nocturne in Black and Gold: The Falling Rocket",70,1875,1,"Detroit Institute of Arts",3,1,0.752,"Whistler-Nocturne in black and gold.jpg"],["repin-barge-haulers-on-the-volga","Barge Haulers on the Volga",71,1873,0,"Russian Museum, St Petersburg",2,0,2.139,"Ilya Repin - Barge Haulers on the Volga - Google Art Project.jpg"],["repin-ivan-the-terrible-and-his-son-ivan","Ivan the Terrible and His Son Ivan",71,1885,0,"Tretyakov Gallery, Moscow",2,0,1.274,"Iván el Terrible y su hijo, por Iliá Repin.jpg"],["repin-reply-of-the-zaporozhian-cossacks","Reply of the Zaporozhian Cossacks",71,1891,0,"Russian Museum, St Petersburg",3,0,1.693,"Ilja Jefimowitsch Repin - Reply of the Zaporozhian Cossacks - Yorck.jpg"],["shishkin-morning-in-a-pine-forest","Morning in a Pine Forest",72,1889,0,"Tretyakov Gallery, Moscow",3,0,1.476,"Shishkin, Ivan - Morning in a Pine Forest.jpg"],["kramskoi-portrait-of-an-unknown-woman","Portrait of an Unknown Woman",73,1883,0,"Tretyakov Gallery, Moscow",3,0,1.329,"Kramskoy Portrait of a Woman.jpg"],["vasnetsov-bogatyrs","Bogatyrs",74,1898,0,"Tretyakov Gallery, Moscow",3,0,1.538,"Viktor Vasnetsov - Богатыри - Google Art Project.jpg"],["surikov-boyarynya-morozova","Boyarynya Morozova",75,1887,0,"Tretyakov Gallery, Moscow",3,0,1.942,"Vasily Surikov - Боярыня Морозова - Google Art Project.jpg"],["vrubel-the-demon-seated","The Demon Seated",76,1890,0,"Tretyakov Gallery, Moscow",3,0,1.887,"Vrubel Demon.jpg"],["eakins-the-gross-clinic","The Gross Clinic",77,1875,0,"Philadelphia Museum of Art",3,0,0.806,"Thomas Eakins, American - Portrait of Dr. Samuel D. Gross (The Gross Clinic) - Google Art Project.jpg"],["homer-the-gulf-stream","The Gulf Stream",78,1899,0,"Metropolitan Museum of Art, New York",3,0,1.662,"Winslow Homer - The Gulf Stream - Metropolitan Museum of Art.jpg"],["homer-breezing-up","Breezing Up",78,1876,1,"National Gallery of Art, Washington",3,0,1.589,"Winslow Homer - Breezing Up (A Fair Wind).jpg"],["sargent-madame-x","Madame X",79,1884,0,"Metropolitan Museum of Art, New York",2,0,0.528,"Sargent MadameX.jpeg"],["sargent-carnation-lily-lily-rose","Carnation, Lily, Lily, Rose",79,1886,1,"Tate Britain, London",3,0,0.885,"John Singer Sargent - Carnation, Lily, Lily, Rose - Google Art Project.jpg"],["sargent-el-jaleo","El Jaleo",79,1882,0,"Isabella Stewart Gardner Museum, Boston",3,0,1.48,"EL JALEO-SINGER.jpg"],["sargent-the-daughters-of-edward-darley-boit","The Daughters of Edward Darley Boit",79,1882,0,"Museum of Fine Arts, Boston",3,0,0.997,"John Singer Sargent 001.jpg"],["bocklin-isle-of-the-dead","Isle of the Dead",80,1883,0,"Alte Nationalgalerie, Berlin",2,0,1.878,"Arnold Böcklin - Die Toteninsel III (Alte Nationalgalerie, Berlin).jpg"],["simberg-the-wounded-angel","The Wounded Angel",81,1903,0,"Ateneum, Helsinki",3,0,1.244,"The Wounded Angel - Hugo Simberg.jpg"],["manet-olympia","Olympia",82,1863,0,"Musée d'Orsay, Paris",1,0,1.469,"Edouard Manet - Olympia - Google Art Project 3.jpg"],["manet-le-dejeuner-sur-l-herbe","Le Déjeuner sur l'herbe (Luncheon on the Grass)",82,1863,0,"Musée d'Orsay, Paris",1,0,1.288,"Edouard Manet - Luncheon on the Grass - Google Art Project.jpg"],["manet-a-bar-at-the-folies-bergere","A Bar at the Folies-Bergère",82,1882,0,"Courtauld Gallery, London",1,0,1.339,"Edouard Manet, A Bar at the Folies-Bergère.jpg"],["manet-the-fifer","The Fifer",82,1866,0,"Musée d'Orsay, Paris",3,0,0.586,"Manet, Edouard - Young Flautist, or The Fifer, 1866 (2).jpg"],["manet-the-balcony","The Balcony",82,1869,1,"Musée d'Orsay, Paris",3,0,0.719,"Edouard Manet - The Balcony - Google Art Project.jpg"],["manet-the-railway","The Railway",82,1873,0,"National Gallery of Art, Washington",3,0,1.228,"Edouard Manet - Le Chemin de fer - Google Art Project.jpg"],["monet-impression-sunrise","Impression, Sunrise",83,1872,0,"Musée Marmottan Monet, Paris",1,0,1.289,"Monet - Impression, Sunrise.jpg"],["monet-woman-with-a-parasol","Woman with a Parasol",83,1875,0,"National Gallery of Art, Washington",2,0,0.805,"Claude Monet - Woman with a Parasol - Madame Monet and Her Son - Google Art Project.jpg"],["monet-the-magpie","The Magpie",83,1869,1,"Musée d'Orsay, Paris",3,0,1.476,"Claude Monet - The Magpie - Google Art Project.jpg"],["monet-women-in-the-garden","Women in the Garden",83,1866,0,"Musée d'Orsay, Paris",3,0,0.812,"Claude Monet 024.jpg"],["monet-san-giorgio-maggiore-at-dusk","San Giorgio Maggiore at Dusk",83,1908,0,"National Museum Cardiff",3,0,1.412,"Claude Monet, Saint-Georges majeur au crépuscule.jpg"],["monet-bridge-over-a-pond-of-water-lilies","Bridge over a Pond of Water Lilies",83,1899,0,"Metropolitan Museum of Art, New York",1,0,0.8,"Bridge Over a Pond of Water Lilies, Claude Monet 1899.jpg"],["renoir-bal-du-moulin-de-la-galette","Bal du moulin de la Galette",84,1876,0,"Musée d'Orsay, Paris",1,0,1.347,"Renoir, Pierre-Auguste - Dance at Le Moulin de la Galette, 1876.jpg"],["renoir-luncheon-of-the-boating-party","Luncheon of the Boating Party",84,1881,0,"The Phillips Collection, Washington",1,0,1.351,"Pierre-Auguste Renoir - Luncheon of the Boating Party - Google Art Project.jpg"],["renoir-dance-at-bougival","Dance at Bougival",84,1883,0,"Museum of Fine Arts, Boston",3,0,0.527,"Dance-At-Bougival.jpg"],["renoir-two-sisters","Two Sisters",84,1881,0,"Art Institute of Chicago",3,0,0.805,"Pierre-Auguste Renoir - Two Sisters (On the Terrace) - 1933.455 - Art Institute of Chicago.jpg"],["renoir-the-umbrellas","The Umbrellas",84,1886,1,"National Gallery, London",3,0,0.636,"Pierre-Auguste Renoir, The Umbrellas, ca. 1881-86.jpg"],["degas-l-absinthe","L'Absinthe",85,1876,0,"Musée d'Orsay, Paris",2,0,0.728,"Edgar Degas - In a Café - Google Art Project 2.jpg"],["degas-the-ballet-class","The Ballet Class",85,1874,0,"Musée d'Orsay, Paris",1,0,0.871,"Edgar Degas - The Ballet Class - Google Art Project.jpg"],["degas-the-bellelli-family","The Bellelli Family",85,1867,1,"Musée d'Orsay, Paris",3,0,1.25,"Edgar Degas - The Bellelli Family - Google Art Project.jpg"],["caillebotte-paris-street-rainy-day","Paris Street; Rainy Day",86,1877,0,"Art Institute of Chicago",1,0,1.288,"Gustave Caillebotte - Paris Street, Rainy Day - 1964.336 - Art Institute of Chicago.jpg"],["caillebotte-the-floor-scrapers","The Floor Scrapers",86,1875,0,"Musée d'Orsay, Paris",2,0,1.423,"Gustave Caillebotte - The Floor Planers - Google Art Project.jpg"],["morisot-the-cradle","The Cradle",87,1872,0,"Musée d'Orsay, Paris",2,0,0.821,"Berthe Morisot - Le berceau.jpg"],["cassatt-the-child-s-bath","The Child's Bath",88,1893,0,"Art Institute of Chicago",2,0,0.655,"The Child's Bath by Mary Cassatt 1893.jpg"],["cassatt-the-boating-party","The Boating Party",88,1894,1,"National Gallery of Art, Washington",3,0,1.304,"Mary Cassatt - The Boating Party - Google Art Project.jpg"],["pissarro-boulevard-montmartre-spring","Boulevard Montmartre, Spring",89,1897,0,"Israel Museum, Jerusalem",3,0,1.254,"Camille Pissarro - Boulevard Montmartre, Spring - Google Art Project.jpg"],["gogh-the-starry-night","The Starry Night",90,1889,0,"Museum of Modern Art, New York",1,0,1.263,"Van Gogh - Starry Night - Google Art Project.jpg"],["gogh-sunflowers","Sunflowers",90,1888,0,"National Gallery, London",1,0,0.792,"Vincent Willem van Gogh 127.jpg"],["gogh-cafe-terrace-at-night","Café Terrace at Night",90,1888,0,"Kröller-Müller Museum, Otterlo",1,0,0.802,"Van Gogh - Terrace of a Café at Night (Place du Forum) 1888.jpg"],["gogh-the-night-cafe","The Night Café",90,1888,0,"Yale University Art Gallery, New Haven",2,0,1.267,"Van Gogh - The Night Café (1888).jpg"],["gogh-bedroom-in-arles","Bedroom in Arles",90,1888,0,"Van Gogh Museum, Amsterdam",1,0,1.261,"Vincent van Gogh - De slaapkamer - Google Art Project.jpg"],["gogh-the-potato-eaters","The Potato Eaters",90,1885,0,"Van Gogh Museum, Amsterdam",2,0,1.415,"De aardappeleters - s0005V1962 - Van Gogh Museum.jpg"],["gogh-wheatfield-with-crows","Wheatfield with Crows",90,1890,0,"Van Gogh Museum, Amsterdam",2,0,2.091,"Korenveld met kraaien - s0149V1962 - Van Gogh Museum.jpg"],["gogh-irises","Irises",90,1889,0,"J. Paul Getty Museum, Los Angeles",2,0,1.309,"Irises-Vincent van Gogh.jpg"],["gogh-almond-blossom","Almond Blossom",90,1890,0,"Van Gogh Museum, Amsterdam",2,0,1.266,"Vincent van Gogh - Almond blossom - Google Art Project.jpg"],["gogh-starry-night-over-the-rhone","Starry Night Over the Rhône",90,1888,0,"Musée d'Orsay, Paris",2,0,1.294,"Vincent van Gogh - Starry Night - Google Art Project.jpg"],["gogh-self-portrait-with-bandaged-ear","Self-Portrait with Bandaged Ear",90,1889,0,"Courtauld Gallery, London",1,0,0.823,"Self-Portrait with a Bandaged Ear - Vincent van Gogh.jpg"],["gogh-portrait-of-dr-gachet","Portrait of Dr. Gachet",90,1890,0,"Private collection",3,0,0.812,"Portrait of Dr. Gachet.jpg"],["gogh-the-church-at-auvers","The Church at Auvers",90,1890,0,"Musée d'Orsay, Paris",3,0,0.774,"Vincent van Gogh - The Church in Auvers-sur-Oise, View from the Chevet - Google Art Project.jpg"],["seurat-a-sunday-afternoon-on-the-island-of-la-gr","A Sunday Afternoon on the Island of La Grande Jatte",91,1886,1,"Art Institute of Chicago",1,0,1.504,"A Sunday on La Grande Jatte, Georges Seurat, 1884.jpg"],["seurat-bathers-at-asnieres","Bathers at Asnières",91,1884,0,"National Gallery, London",2,0,1.506,"Baigneurs a Asnieres.jpg"],["seurat-the-circus","The Circus",91,1891,0,"Musée d'Orsay, Paris",3,0,0.807,"Georges Seurat - The Circus - Google Art Project.jpg"],["cezanne-the-card-players","The Card Players",92,1895,1,"One of five versions painted in the 1890s",1,0,1.216,"Paul Cézanne, Les joueurs de carte (1892-95).jpg"],["cezanne-the-basket-of-apples","The Basket of Apples",92,1893,1,"Art Institute of Chicago",3,0,1.249,"Paul Cézanne - The Basket of Apples - 1926.252 - Art Institute of Chicago.jpg"],["cezanne-the-large-bathers","The Large Bathers",92,1905,1,"Philadelphia Museum of Art",2,0,1.196,"Paul Cézanne, French - The Large Bathers - Google Art Project.jpg"],["cezanne-mont-sainte-victoire","Mont Sainte-Victoire",92,1904,1,"One of a long series of the same mountain",2,0,0.805,"1904, Cézanne, Mont Sainte-Victoire.jpg"],["gauguin-the-yellow-christ","The Yellow Christ",93,1889,0,"Buffalo AKG Art Museum",2,0,0.795,"Paul Gauguin - The Yellow Christ (Le Christ jaune) 1889.jpg"],["gauguin-vision-after-the-sermon","Vision after the Sermon",93,1888,0,"Scottish National Gallery, Edinburgh",3,0,1.253,"La vision après le sermon (Paul Gauguin).jpg"],["gauguin-tahitian-women-on-the-beach","Tahitian Women on the Beach",93,1891,0,"Musée d'Orsay, Paris",2,0,1.341,"Paul Gauguin 056.jpg"],["toulouse-lautrec-at-the-moulin-rouge","At the Moulin Rouge",94,1895,1,"Art Institute of Chicago",2,0,1.144,"Henri de Toulouse-Lautrec - At the Moulin Rouge - 1928.610 - Art Institute of Chicago.jpg"],["rousseau-the-sleeping-gypsy","The Sleeping Gypsy",95,1897,0,"Museum of Modern Art, New York",2,0,1.565,"La Bohémienne endormie.jpg"],["rousseau-the-dream","The Dream",95,1910,0,"Museum of Modern Art, New York",2,0,1.476,"Henri Rousseau 005.jpg"],["rousseau-tiger-in-a-tropical-storm","Tiger in a Tropical Storm (Surprised!)",95,1891,0,"National Gallery, London",2,0,1.251,"Surprised-Rousseau.jpg"],["munch-the-scream","The Scream",96,1893,0,"National Museum, Oslo",1,0,0.805,"Edvard Munch, 1893, The Scream, oil, tempera and pastel on cardboard, 91 x 73 cm, National Gallery of Norway.jpg"],["munch-madonna","Madonna",96,1894,1,"Oslo; versions at the Munch Museum and the National Museum",3,0,0.777,"Edvard Munch - Madonna (1894-1895).jpg"],["munch-the-sick-child","The Sick Child",96,1886,1,"National Museum, Oslo",3,0,0.991,"Munch Det Syke Barn 1885-86.jpg"],["munch-the-dance-of-life","The Dance of Life",96,1900,1,"National Museum, Oslo",3,0,1.535,"Edvard Munch - The Dance of Life - NG.M.00941 - National Museum of Art, Architecture and Design.jpg"],["klimt-the-kiss","The Kiss",97,1908,1,"Belvedere, Vienna",1,0,0.997,"The Kiss - Gustav Klimt - Google Cultural Institute.jpg"],["klimt-portrait-of-adele-bloch-bauer-i","Portrait of Adele Bloch-Bauer I",97,1907,0,"Neue Galerie, New York",1,0,1.001,"Gustav Klimt, 1907, Adele Bloch-Bauer I, Neue Galerie New York.jpg"],["klimt-judith-and-the-head-of-holofernes","Judith and the Head of Holofernes",97,1901,0,"Belvedere, Vienna",2,0,0.489,"Gustav Klimt 039.jpg"],["klimt-death-and-life","Death and Life",97,1915,1,"Leopold Museum, Vienna",3,0,1.149,"Gustav Klimt - Death and Life - Google Art Project.jpg"],["klimt-the-three-ages-of-woman","The Three Ages of Woman",97,1905,0,"Galleria Nazionale d'Arte Moderna, Rome",3,0,1.006,"Klimt - The Three Ages of Woman (1905) Google Art Project.jpg"],["matisse-dance","Dance",98,1910,0,"Hermitage Museum, St Petersburg",1,0,1.491,"Henri Matisse - Dance II (Hermitage Museum).jpg"],["matisse-woman-with-a-hat","Woman with a Hat",98,1905,0,"San Francisco Museum of Modern Art",2,0,0.734,"Matisse-Woman-with-a-Hat.jpg"],["matisse-le-bonheur-de-vivre","Le bonheur de vivre (The Joy of Life)",98,1906,1,"Barnes Foundation, Philadelphia",3,0,1.376,"La Joie de vivre, par Henri Matisse.jpg"],["matisse-the-red-studio","The Red Studio",98,1911,0,"Museum of Modern Art, New York",2,0,1.211,"L'Atelier rouge, par Henri Matisse.jpg"],["kandinsky-composition-vii","Composition VII",99,1913,0,"Tretyakov Gallery, Moscow",2,0,1.506,"Composition VII - Wassily Kandinsky, GAC.jpg"],["kandinsky-composition-viii","Composition VIII",99,1923,0,"Solomon R. Guggenheim Museum, New York",2,0,1.444,"Vassily Kandinsky, 1923 - Composition 8, huile sur toile, 140 cm x 201 cm, Musée Guggenheim, New York.jpg"],["malevich-black-square","Black Square",100,1915,0,"Tretyakov Gallery, Moscow",1,1,0.998,"Чёрный супрематический квадрат. 1915. ГТГ.png"],["mondrian-composition-with-red-blue-and-yellow","Composition with Red, Blue and Yellow",101,1930,0,"Kunsthaus Zürich",1,1,0.986,"Piet Mondriaan, 1930 - Mondrian Composition II in Red, Blue, and Yellow.jpg"],["klee-twittering-machine","Twittering Machine",102,1922,0,"Museum of Modern Art, New York",2,0,0.736,"Die Zwitscher-Maschine (Twittering Machine), 1922 - Paul Klee.jpg"],["klee-senecio","Senecio",102,1922,0,"Kunstmuseum Basel",2,0,0.917,"Paul Klee, 1922, Senecio, oil on gauze, 40.3 × 37.4 cm, Kunstmuseum Basel.jpg"],["marc-the-large-blue-horses","The Large Blue Horses",103,1911,0,"Walker Art Center, Minneapolis",2,0,1.749,"Franz Marc 005.jpg"],["schiele-self-portrait-with-chinese-lantern-plant","Self-Portrait with Chinese Lantern Plant",104,1912,0,"Leopold Museum, Vienna",2,0,1.235,"Egon Schiele - Self-Portrait with Physalis - Google Art Project.jpg"],["schiele-death-and-the-maiden","Death and the Maiden",104,1915,0,"Belvedere, Vienna",3,0,1.182,"Egon Schiele - Tod und Mädchen - 3171 - Österreichische Galerie Belvedere.jpg"],["kirchner-street-berlin","Street, Berlin",105,1913,0,"Museum of Modern Art, New York",3,0,0.756,"Kirchner 1913 Street, Berlin.jpg"],["gris-portrait-of-pablo-picasso","Portrait of Pablo Picasso",106,1912,0,"Art Institute of Chicago",3,0,0.786,"Juan Gris - Portrait of Pablo Picasso - Google Art Project.jpg"],["boccioni-the-city-rises","The City Rises",107,1910,0,"Museum of Modern Art, New York",3,0,1.506,"The City Rises by Umberto Boccioni 1910.jpg"],["wood-american-gothic","American Gothic",108,1930,0,"Art Institute of Chicago",1,0,0.828,"Grant Wood - American Gothic (1930).jpg"],["bellows-stag-at-sharkey-s","Stag at Sharkey's",109,1909,0,"Cleveland Museum of Art",3,0,1.338,"George Bellows (American, 1882-1925) - Stag at Sharkey's - 1922.1133 - Cleveland Museum of Art.jpg"],["bellows-dempsey-and-firpo","Dempsey and Firpo",109,1924,0,"Whitney Museum of American Art, New York",3,0,1.233,"Bellows George Dempsey and Firpo 1924.jpg"]]};</script>
+<script>
+(() => {
+'use strict';
+const D = window.GALLERY;
+const A = D.artists.map(a => ({ name: a[0], nat: a[1], life: a[2], born: a[3], move: a[4], group: a[5], era: a[6], tell: a[7] }));
+const W = D.works.map((w, i) => ({ i, id: w[0], title: w[1], a: w[2], year: w[3], circa: !!w[4], loc: w[5], tier: w[6], noDetail: !!w[7], ar: w[8], src: w[9] }));
+const byArtist = A.map(() => []);
+W.forEach(w => byArtist[w.a].push(w.i));
+
+const ERAS = ['Italian Renaissance', 'Northern Renaissance', 'Mannerism', 'Baroque', 'Rococo', 'Neoclassicism', 'Romanticism', 'Realism', 'Impressionism', 'Post-Impressionism', 'Symbolism', 'Expressionism', 'Abstract art'];
+const CLASH = {
+  'Italian Renaissance': ['Mannerism'], 'Mannerism': ['Italian Renaissance'],
+  'Realism': ['Impressionism'], 'Impressionism': ['Realism'],
+  'Post-Impressionism': ['Symbolism'], 'Symbolism': ['Post-Impressionism', 'Expressionism'], 'Expressionism': ['Symbolism']
+};
+const TYPES = {
+  attr:   { name: 'Attribution',   blurb: 'Name the artist. The other three painted in a similar style.', hard: 'Type the artist’s name from memory. No options given.' },
+  title:  { name: 'Titles',        blurb: 'Match the work to its proper title.' },
+  detail: { name: 'Close looking', blurb: 'Name the artist from a detail. Stepping back costs points.', hard: 'Type the artist’s name from a detail. Stepping back costs points.' },
+  date:   { name: 'Dating',        blurb: 'Place the work on the timeline, to the year if you can.' },
+  lineup: { name: 'Lineup',        blurb: 'Four works on the wall. Find the one by the named artist.' },
+  move:   { name: 'Movements',     blurb: 'Baroque or Rococo? Name the movement behind the work.' }
+};
+const PLAN = [['attr', 1], ['title', 2], ['move', 3], ['detail', 1], ['date', 1], ['lineup', 2], ['attr', 2], ['title', 3], ['detail', 1], ['date', 2]];
+const ZOOMS = [4.2, 2.1, 1];
+const WORTH = [100, 70, 40];
+const Y0 = 1300, Y1 = 1930;
+const RANKS = [
+  [950, 'Museum Director', 'A flawless eye. The trustees would like a word about a promotion.'],
+  [850, 'Chief Curator', 'You could hang this whole show from memory.'],
+  [700, 'Curator', 'A trained eye. Only the trickiest attributions got past you.'],
+  [500, 'Docent', 'You know the collection well enough to lead the tour.'],
+  [300, 'Gallery Regular', 'You know the famous faces. The side rooms are waiting.'],
+  [0, 'Day Visitor', 'Everyone starts in the lobby. Take another lap and the names will stick.']
+];
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const rnd = n => Math.floor(Math.random() * n);
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const sample = (a, n) => shuffle(a).slice(0, n);
+const norm = s => s.toLowerCase().replace(/\(.*?\)/g, '').replace(/^the\s+/, '').replace(/[^a-z0-9]+/g, '');
+const store = {
+  get(k, f) { try { const v = localStorage.getItem(k); return v == null ? f : JSON.parse(v); } catch (e) { return f; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const when = w => (w.circa ? 'c. ' : '') + w.year;
+const img = w => 'img/' + w.id + '.jpg';
+const rank = s => { const r = RANKS.find(r => s >= r[0]); return { name: r[1], line: r[2] }; };
+const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
+const century = y => ordinal(Math.floor((y - 1) / 100) + 1) + ' century';
+const ICON = {
+  ok: '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M5.8 10.4l2.8 2.8 5.6-6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  no: '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M6.6 6.6l6.8 6.8M13.4 6.6l-6.8 6.8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
+  go: '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h11M11 5.5l4.5 4.5-4.5 4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+
+/* ---------- typed answers (Hard level) ---------- */
+const fold = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/ß/g, 'ss').replace(/[^a-z0-9]+/g, ' ').trim();
+const PARTICLES = new Set(['van', 'von', 'de', 'da', 'del', 'della', 'der', 'den', 'di', 'le', 'la', 'el']);
+const ALSO = {
+  'Giotto': ['giotto di bondone'],
+  'Piero della Francesca': ['piero'],
+  'Leonardo da Vinci': ['leonardo', 'davinci'],
+  'Raphael': ['rafael', 'raffael', 'raffaello', 'raffaello sanzio', 'raphael sanzio', 'sanzio'],
+  'Michelangelo': ['michelangelo buonarroti', 'buonarroti'],
+  'Titian': ['tiziano', 'tiziano vecellio', 'vecellio'],
+  'Bronzino': ['agnolo bronzino'],
+  'El Greco': ['domenikos theotokopoulos', 'theotokopoulos'],
+  'Albrecht Dürer': ['duerer', 'albrecht duerer'],
+  'Matthias Grünewald': ['gruenewald'],
+  'Pieter Bruegel the Elder': ['brueghel', 'breughel', 'breugel', 'pieter brueghel', 'pieter brueghel the elder'],
+  'Caravaggio': ['michelangelo merisi', 'merisi', 'michelangelo merisi da caravaggio'],
+  'Artemisia Gentileschi': ['artemisia'],
+  'Anthony van Dyck': ['van dyke', 'vandyke', 'anthony van dyke'],
+  'Diego Velázquez': ['velasquez', 'diego velasquez'],
+  'Rembrandt van Rijn': ['rembrandt'],
+  'Johannes Vermeer': ['jan vermeer'],
+  'Élisabeth Vigée Le Brun': ['vigee le brun', 'vigee lebrun', 'lebrun', 'vigee', 'elisabeth vigee lebrun', 'elisabeth louise vigee le brun'],
+  'Joseph Wright of Derby': ['wright', 'joseph wright', 'wright of derby'],
+  'Henry Fuseli': ['fussli', 'fuessli', 'johann heinrich fussli'],
+  'Francisco Goya': ['francisco de goya', 'de goya'],
+  'J. M. W. Turner': ['william turner', 'jmw turner', 'joseph mallord william turner'],
+  'Ivan Aivazovsky': ['aivazovski', 'ayvazovsky'],
+  'Karl Bryullov': ['briullov', 'brullov', 'bryulov'],
+  'Frederic Edwin Church': ['frederick church'],
+  'Utagawa Hiroshige': ['ando hiroshige'],
+  'Frederic Leighton': ['lord leighton', 'frederick leighton'],
+  'Lawrence Alma-Tadema': ['alma tadema'],
+  'James McNeill Whistler': ['james abbott mcneill whistler'],
+  'Ivan Kramskoi': ['kramskoy'],
+  'Viktor Vasnetsov': ['victor vasnetsov'],
+  'Arnold Böcklin': ['boecklin'],
+  'Pierre-Auguste Renoir': ['auguste renoir'],
+  'Vincent van Gogh': ['vincent'],
+  'Henri de Toulouse-Lautrec': ['toulouse lautrec', 'henri toulouse lautrec', 'toulouse'],
+  'Henri Rousseau': ['douanier rousseau', 'le douanier rousseau'],
+  'Wassily Kandinsky': ['vasily kandinsky', 'kandinski'],
+  'Kazimir Malevich': ['malevitch', 'kasimir malevich'],
+  'Piet Mondrian': ['mondriaan', 'piet mondriaan']
+};
+// Every accepted spelling per artist: full name, surname (with particles), first name + surname, plus the extras above.
+const ALIASES = A.map(a => {
+  const full = fold(a.name), base = full.replace(/ the (elder|younger)$/, ''), p = base.split(' ');
+  const set = new Set([full, base, p[p.length - 1]]);
+  let i = p.length - 1;
+  while (i > 0 && PARTICLES.has(p[i - 1])) { i--; set.add(p.slice(i).join(' ')); }
+  if (i > 1) set.add(p[0] + ' ' + p.slice(i).join(' '));
+  (ALSO[a.name] || []).forEach(x => set.add(fold(x)));
+  return [...set];
+});
+function editDistance(a, b) {
+  const m = a.length, n = b.length;
+  if (Math.abs(m - n) > 3) return 9;
+  let prev2 = null, prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const row = [i];
+    for (let j = 1; j <= n; j++) {
+      let v = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (prev2 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, prev2[j - 2] + 1);
+      row[j] = v;
+    }
+    prev2 = prev; prev = row;
+  }
+  return prev[n];
+}
+const slack = n => n <= 4 ? 0 : n <= 6 ? 1 : n <= 9 ? 2 : 3;
+// Which artist does this typed text name? Returns an artist index, or -1 when it matches nobody or is ambiguous.
+function whoIs(text) {
+  const q = fold(text);
+  if (!q) return -1;
+  let best = -1, bestD = 9, tie = false;
+  ALIASES.forEach((list, a) => {
+    let d = 9;
+    for (const al of list) { const x = editDistance(q, al); if (x <= slack(al.length) && x < d) d = x; }
+    if (d < bestD) { best = a; bestD = d; tie = false; }
+    else if (d === bestD && d < 9) tie = true;
+  });
+  if (best >= 0) return tie ? -1 : best;
+  // No close spelling: accept a known name sitting inside a longer answer, preferring the longest.
+  let len = 0;
+  const padded = ' ' + q + ' ';
+  ALIASES.forEach((list, a) => list.forEach(al => {
+    if (al.length < 5 || !padded.includes(' ' + al + ' ')) return;
+    if (al.length > len) { best = a; len = al.length; tie = false; }
+    else if (al.length === len && best !== a) tie = true;
+  }));
+  return tie ? -1 : best;
+}
+
+/* ---------- building a tour ---------- */
+function nearArtists(a) {
+  const me = A[a];
+  return A.map((x, i) => ({ i, d: Math.abs(x.born - me.born) + (x.group === me.group ? 0 : 55) }))
+    .filter(x => x.i !== a).sort((p, q) => p.d - q.d).map(x => x.i);
+}
+function rivals(a) {
+  const near = nearArtists(a);
+  return [...sample(near.slice(0, 6), 2), ...sample(near.slice(6, 14), 1)];
+}
+function buildRound(type, w, used, hard) {
+  const r = { type, w: w.i, done: false, pick: null, pts: 0 };
+  if (type === 'attr' || type === 'detail') {
+    if (hard) r.typed = true;
+    r.opts = shuffle([w.a, ...rivals(w.a)]);
+    r.ans = r.opts.indexOf(w.a);
+    if (type === 'detail') { r.fx = 24 + rnd(53); r.fy = 22 + rnd(50); r.zoom = 0; }
+  } else if (type === 'title') {
+    const taken = new Set([norm(w.title)]), picks = [];
+    const add = i => { const t = norm(W[i].title); if (!taken.has(t) && picks.length < 3) { taken.add(t); picks.push(i); } };
+    sample(byArtist[w.a].filter(i => i !== w.i), 1).forEach(add);
+    shuffle(nearArtists(w.a).slice(0, 8).flatMap(a => byArtist[a])).forEach(add);
+    r.opts = shuffle([w.i, ...picks]);
+    r.ans = r.opts.indexOf(w.i);
+  } else if (type === 'lineup') {
+    const others = rivals(w.a).map(a => {
+      const free = byArtist[a].filter(i => !used.has(i));
+      const pool = free.length ? free : byArtist[a];
+      return pool[rnd(pool.length)];
+    });
+    r.opts = shuffle([w.i, ...others]);
+    r.ans = r.opts.indexOf(w.i);
+  } else if (type === 'move') {
+    const era = A[w.a].era, k = ERAS.indexOf(era);
+    const cands = ERAS.map((e, i) => ({ e, i, d: Math.abs(i - k) }))
+      .filter(x => x.e !== era && !(CLASH[era] || []).includes(x.e))
+      .sort((p, q) => p.d - q.d).slice(0, 5);
+    r.opts = [{ e: era, i: k }, ...sample(cands, 3)].sort((p, q) => p.i - q.i).map(x => x.e);
+    r.ans = r.opts.indexOf(era);
+  } else if (type === 'date') {
+    r.guess = 1615;
+  }
+  return r;
+}
+function newTour(mode) {
+  let plan;
+  if (mode === 'tour') { const [first, ...rest] = PLAN; plan = [first, ...shuffle(rest)]; }
+  else plan = shuffle([1, 1, 1, 1, 2, 2, 2, 2, 3, 3]).map(t => [mode, t]);
+  const recent = new Set(store.get('ug.recent', []));
+  const fitsType = { detail: w => !w.noDetail, move: w => !!A[w.a].era };
+  const usedW = new Set(), usedA = new Set();
+  const picks = plan.map(([type, tier]) => {
+    const fits = w => !usedW.has(w.i) && !usedA.has(w.a) && (!fitsType[type] || fitsType[type](w));
+    let pool = W.filter(w => fits(w) && w.tier === tier && !recent.has(w.id));
+    if (!pool.length) pool = W.filter(w => fits(w) && w.tier === tier);
+    if (!pool.length) pool = W.filter(fits);
+    const w = pool[rnd(pool.length)];
+    usedW.add(w.i); usedA.add(w.a);
+    return [type, w];
+  });
+  const rounds = picks.map(([type, w]) => buildRound(type, w, usedW, S.hard));
+  store.set('ug.recent', [...picks.map(p => p[1].id), ...store.get('ug.recent', [])].slice(0, 110));
+  return rounds;
+}
+function dateScore(year, guess) {
+  const tol = year < 1500 ? 20 : year < 1700 ? 12 : year < 1850 ? 8 : 5;
+  const err = Math.abs(year - guess);
+  return err <= tol ? 100 : Math.max(0, Math.round(100 * (1 - (err - tol) / (tol * 6))));
+}
+
+/* ---------- state ---------- */
+let S = { v: D.v, screen: 'lobby', mode: 'tour', rounds: [], i: 0, hero: [], quitAsk: false, newBest: false, hard: !!store.get('ug.hard', false), tourHard: false };
+const cur = () => S.rounds[S.i];
+const score = () => S.rounds.reduce((s, r) => s + r.pts, 0);
+const worthAt = (r, zoom) => Math.round((r.type === 'detail' ? WORTH[zoom] : 100) * (r.typed && r.showOpts ? .5 : 1));
+const worthNow = r => worthAt(r, r.zoom || 0);
+const bestKey = hard => hard ? 'ug.best.hard' : 'ug.best';
+function pickHero() {
+  const seen = new Set();
+  return shuffle(W.filter(w => w.tier === 1 && w.ar > .68 && w.ar < 1.42))
+    .filter(w => !seen.has(w.a) && seen.add(w.a)).slice(0, 5).map(w => w.i);
+}
+
+/* ---------- rendering ---------- */
+function fadeIn(root) {
+  $$('img[data-fade]', root).forEach(im => {
+    const on = () => im.classList.add('is-in');
+    if (im.complete && im.naturalWidth) on(); else { im.addEventListener('load', on, { once: true }); im.addEventListener('error', on, { once: true }); }
+  });
+}
+function render() {
+  const app = $('#app');
+  if (S.screen === 'lobby') app.innerHTML = lobbyHTML();
+  else if (S.screen === 'finale') app.innerHTML = finaleHTML();
+  else {
+    app.innerHTML = '<header class="bar" id="bar"></header><main class="room"><section class="stage" id="stage"></section><section class="panel" id="panel" aria-live="polite"></section></main>';
+    paintBar(); paintStage(); paintPanel();
+  }
+  fadeIn(app);
+}
+function lobbyHTML() {
+  const best = store.get(bestKey(S.hard), 0);
+  const years = W.map(w => w.year);
+  return `
+  <div class="lobby">
+    <div class="hang" aria-hidden="true">
+      ${S.hero.map(i => `<figure style="--ar:${W[i].ar}"><span class="frame"><span class="canvas"><img data-fade src="${img(W[i])}" alt=""></span></span><span class="blank">?</span></figure>`).join('')}
+    </div>
+    <div class="lobby-grid">
+      <div class="intro">
+        <p class="kicker">An art history game</p>
+        <h1 class="title">The <em>Unlabeled</em> Gallery</h1>
+        <p class="lede">Overnight, every wall label in the museum went missing. ${W.length} works by ${A.length} artists, made between ${Math.min(...years)} and ${Math.max(...years)}, now hang without a name, a maker or a date. Put the labels back.</p>
+        <div class="level" role="group" aria-label="Difficulty">
+          <button class="lvl ${S.hard ? '' : 'is-on'}" data-act="level" data-v="0" aria-pressed="${!S.hard}"><b>Medium</b><span>Pick the artist from four</span></button>
+          <button class="lvl ${S.hard ? 'is-on' : ''}" data-act="level" data-v="1" aria-pressed="${S.hard}"><b>Hard</b><span>Type the artist’s name</span></button>
+        </div>
+        <div class="start">
+          <button class="cta" data-act="start" data-v="tour">Start a tour ${ICON.go}</button>
+          <p class="meta">10 works · 6 kinds of question · 1,000 points</p>
+        </div>
+        ${best ? `<p class="best">Your best ${S.hard ? 'Hard' : 'Medium'} tour so far: <b>${best}</b> points, ranked ${esc(rank(best).name)}.</p>` : ''}
+      </div>
+      <div class="skills">
+        <h2 class="kicker">Or practise one skill for ten works</h2>
+        <div class="skill-list">
+          ${Object.entries(TYPES).map(([k, t]) => `<button class="skill" data-act="start" data-v="${k}"><b>${t.name}</b><span>${S.hard && t.hard ? t.hard : t.blurb}</span>${ICON.go}</button>`).join('')}
+        </div>
+      </div>
+    </div>
+    <p class="credits">Every image is a public-domain reproduction from <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a>, and each answer links to its source file. Dates and locations follow the holding museums; a date marked c. is approximate.</p>
+  </div>`;
+}
+function paintBar() {
+  const n = S.rounds.length;
+  $('#bar').innerHTML = `
+    <p class="wordmark">The Unlabeled Gallery</p>
+    <div class="pips" role="img" aria-label="Work ${S.i + 1} of ${n}">
+      ${S.rounds.map((r, k) => `<i class="pip ${r.done ? 'is-done' : ''} ${k === S.i ? 'is-now' : ''}" style="--fill:${r.done ? r.pts : 0}%"></i>`).join('')}
+    </div>
+    <div class="bar-right">
+      ${S.quitAsk
+        ? `<span class="quit-ask">Leave this tour? <button class="quit" data-act="quit-yes">Leave</button> <button class="quit" data-act="quit-no">Stay</button></span>`
+        : `<button class="quit" data-act="quit">Quit</button>`}
+      <span class="tally">${score()} <small>pts</small></span>
+    </div>`;
+}
+function paintStage() {
+  const r = cur(), w = W[r.w], st = $('#stage');
+  if (r.type === 'lineup') {
+    st.innerHTML = `<div class="lineup">${r.opts.map((i, k) => `
+      <div class="slot">
+        <button class="tile" data-act="pick" data-v="${k}" style="--ar:${W[i].ar}" aria-label="Painting ${k + 1}">
+          <span class="frame"><span class="canvas"><img data-fade src="${img(W[i])}" alt="Painting ${k + 1}"></span></span>
+          <span class="tile-key">${k + 1}</span>
+        </button>
+        <p class="tile-cap">&nbsp;</p>
+      </div>`).join('')}</div>`;
+  } else {
+    const z = r.type === 'detail' && !r.done ? ZOOMS[r.zoom] : 1;
+    st.innerHTML = `
+      <div class="frame" style="--ar:${w.ar}"><div class="canvas" id="canvas" style="--z:${z};--fx:${r.fx || 50}%;--fy:${r.fy || 50}%"><img data-fade id="work" src="${img(w)}" alt="The work to identify"></div></div>
+      <p class="plate" id="plate">Work ${S.i + 1} · label missing</p>`;
+  }
+  fadeIn(st);
+  if (r.done) markStage();
+  const nx = S.rounds[S.i + 1];
+  if (nx) (nx.type === 'lineup' ? nx.opts : [nx.w]).forEach(i => { const p = new Image(); p.src = img(W[i]); });
+}
+function markStage() {
+  const r = cur(), w = W[r.w];
+  if (r.type === 'lineup') {
+    $$('.slot').forEach((s, k) => {
+      const t = $('.tile', s), cap = $('.tile-cap', s);
+      t.disabled = true;
+      t.classList.add(k === r.ans ? 'is-right' : k === r.pick ? 'is-wrong' : 'is-dim');
+      cap.textContent = A[W[r.opts[k]].a].name;
+      cap.classList.add('is-on');
+    });
+    return;
+  }
+  const c = $('#canvas'); if (c) c.style.setProperty('--z', 1);
+  const im = $('#work'); if (im) im.alt = w.title + ' by ' + A[w.a].name;
+  const pl = $('#plate'); if (pl) pl.innerHTML = `<i>${esc(w.title)}</i> · ${esc(A[w.a].name)}`;
+}
+function tombHTML(w) {
+  const a = A[w.a];
+  const file = 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(w.src.replace(/ /g, '_'));
+  return `
+  <article class="tomb">
+    <p class="who">${esc(a.name)}</p>
+    <p class="life">${esc(a.nat)}, ${esc(a.life)} · ${esc(a.move)}</p>
+    <p class="what">${esc(w.title)}<span>, ${when(w)}</span></p>
+    <p class="where">${esc(w.loc)}</p>
+    <p class="tell"><b>How to spot the artist</b>${esc(a.tell)}</p>
+    <p class="src"><a href="${file}" target="_blank" rel="noopener">Image source: Wikimedia Commons</a></p>
+  </article>`;
+}
+function optionsHTML(r, label, cls) {
+  return `<div class="options">${r.opts.map((o, k) => `<button class="opt ${cls || ''}" data-act="pick" data-v="${k}"><span class="key">${k + 1}</span><span class="txt">${esc(label(o))}</span></button>`).join('')}</div>`;
+}
+function typedHTML(r) {
+  return `
+    <form class="typed" id="typed-form" novalidate>
+      <label class="field-label" for="artist-input">Artist</label>
+      <div class="typed-row">
+        <input class="name-input" id="artist-input" name="artist" type="text" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" enterkeyhint="go" placeholder="A surname is enough" value="${esc(r.text || '')}">
+        <button class="cta" type="submit">Submit</button>
+      </div>
+      <div class="typed-alt">
+        <button class="ghost" type="button" data-act="show-opts">Show four choices for ${Math.round(worthNow(r) / 2)}</button>
+        <button class="ghost" type="button" data-act="pass">I don’t know</button>
+      </div>
+    </form>`;
+}
+function focusInput() { const inp = $('#artist-input'); if (inp && !narrow()) inp.focus({ preventScroll: true }); }
+function paintPanel() {
+  const r = cur(), w = W[r.w], a = A[w.a], n = S.rounds.length, t = TYPES[r.type];
+  const kicker = `<p class="kicker">${t.name} · Work ${S.i + 1} of ${n}</p>`;
+  const typing = r.typed && !r.showOpts;
+  let h = '';
+  if (!r.done) {
+    if (r.type === 'attr') h = `<h2 class="prompt">Who painted this?</h2>` + (typing ? typedHTML(r) : optionsHTML(r, o => A[o].name))
+      + (r.typed && r.showOpts ? `<p class="worth">With the choices showing, a correct answer is worth <b>${worthNow(r)}</b>.</p>` : '');
+    else if (r.type === 'title') h = `<h2 class="prompt">What is this work called?</h2>` + optionsHTML(r, o => W[o].title, 'is-title');
+    else if (r.type === 'move') h = `<h2 class="prompt">Which movement does this belong to?</h2>` + optionsHTML(r, o => o);
+    else if (r.type === 'detail') {
+      h = `<h2 class="prompt">Whose hand is this detail from?</h2>` + (typing ? typedHTML(r) : optionsHTML(r, o => A[o].name)) + `
+        <div class="loupe">
+          <p class="worth">A correct answer from here is worth <b>${worthNow(r)}</b>.</p>
+          ${r.zoom < 2 ? `<button class="ghost" data-act="zoom">Step back for ${worthAt(r, r.zoom + 1)}</button>` : ''}
+        </div>`;
+    } else if (r.type === 'lineup') {
+      h = `<h2 class="prompt">Which of these is by <em>${esc(a.name)}</em>?</h2><p class="hint">Choose a painting, or press 1 to 4.</p>`;
+    } else if (r.type === 'date') {
+      const ticks = [1300, 1400, 1500, 1600, 1700, 1800, 1900];
+      h = `<h2 class="prompt">When was this made?</h2>
+        <div class="dating">
+          <div class="year-row"><output class="year" id="year-out" for="year-range">${r.guess}</output><span class="century" id="year-century">${century(r.guess)}</span></div>
+          <input class="yr" type="range" id="year-range" min="${Y0}" max="${Y1}" step="1" value="${r.guess}" aria-label="Year">
+          <div class="scale" aria-hidden="true">${ticks.map(y => `<span style="left:${(y - Y0) / (Y1 - Y0) * 100}%">${y}</span>`).join('')}</div>
+          <div class="nudge">
+            ${[-10, -1, 1, 10].map(d => `<button class="ghost" data-act="nudge" data-v="${d}" aria-label="${d > 0 ? 'Later' : 'Earlier'} by ${Math.abs(d)}">${d > 0 ? '+' : '−'}${Math.abs(d)}</button>`).join('')}
+            <button class="cta" data-act="lock" id="lock"><span>Lock in <span id="lock-year">${r.guess}</span></span></button>
+          </div>
+        </div>`;
+    }
+  } else {
+    let word, cls, said = '';
+    if (r.type === 'date') {
+      const off = r.guess - w.year, abs = Math.abs(off);
+      word = r.pts === 100 ? 'Spot on' : r.pts >= 70 ? 'Close' : r.pts >= 30 ? 'Right neighbourhood' : 'Wrong era';
+      cls = r.pts >= 70 ? 'is-good' : r.pts >= 30 ? 'is-mid' : 'is-bad';
+      said = `<p class="said">You said ${r.guess}. It was made ${when(w)}${abs ? `, ${abs} year${abs === 1 ? '' : 's'} ${off > 0 ? 'earlier' : 'later'}` : ''}.</p>
+        <div class="span-track" role="img" aria-label="Your guess ${r.guess}, actual date ${w.year}">
+          <span class="mark you" style="left:${(r.guess - Y0) / (Y1 - Y0) * 100}%"><b>You ${r.guess}</b></span>
+          <span class="mark real" style="left:${(w.year - Y0) / (Y1 - Y0) * 100}%"><b>Made ${w.year}</b></span>
+        </div>`;
+    } else {
+      const ok = typing ? !!r.ok : r.pick === r.ans;
+      word = ok ? 'Correct' : 'Not this time';
+      cls = ok ? 'is-good' : 'is-bad';
+      if (!ok && typing) said = r.pass ? `<p class="said">You passed on this one.</p>` : `<p class="said">You typed “${esc(r.text)}”.</p>`;
+      else if (!ok) {
+        const o = r.opts[r.pick];
+        said = r.type === 'title' ? `<p class="said">You chose <i>${esc(W[o].title)}</i>, by ${esc(A[W[o].a].name)}.</p>`
+          : r.type === 'lineup' ? `<p class="said">You picked no. ${r.pick + 1}, <i>${esc(W[o].title)}</i> by ${esc(A[W[o].a].name)}. The answer is no. ${r.ans + 1}.</p>`
+          : r.type === 'move' ? `<p class="said">You chose ${esc(o)}. This is ${esc(r.opts[r.ans])}.</p>`
+          : `<p class="said">You chose ${esc(A[o].name)}.</p>`;
+      } else if (r.type === 'move') said = `<p class="said">${esc(r.opts[r.ans])}.</p>`;
+    }
+    const last = S.i === n - 1;
+    h = `<div class="verdict"><span class="word ${cls}">${cls === 'is-bad' ? ICON.no : ICON.ok}${word}</span><span class="pts">+${r.pts} points</span></div>
+      ${said}${tombHTML(w)}
+      <div class="next-row"><button class="cta" data-act="next" id="next">${last ? 'See your results' : 'Next work'} ${ICON.go}</button><span class="keyhint">or press Enter</span></div>`;
+  }
+  $('#panel').innerHTML = kicker + h;
+  if (!r.done) focusInput();
+}
+function finaleHTML() {
+  const s = score(), rk = rank(s), max = S.rounds.length * 100;
+  return `
+  <header class="bar"><p class="wordmark">The Unlabeled Gallery</p><span class="tally">${S.mode === 'tour' ? 'Full tour' : TYPES[S.mode].name + ' practice'}${S.tourHard ? ' · Hard' : ''}</span></header>
+  <div class="finale">
+    <div class="result">
+      <p class="kicker">${S.newBest ? 'Tour complete · a new personal best' : 'Tour complete'}</p>
+      <p class="score">${s}<small>/ ${max.toLocaleString('en-US')}</small></p>
+      <p class="rank">${esc(rk.name)}</p>
+      <p class="rank-line">${esc(rk.line)}</p>
+      <div class="actions">
+        <button class="cta" data-act="start" data-v="${S.mode}" id="again">${S.mode === 'tour' ? 'Start a new tour' : 'Ten more'} ${ICON.go}</button>
+        <button class="ghost" data-act="lobby">Back to the lobby</button>
+      </div>
+    </div>
+    <ol class="recap">
+      ${S.rounds.map(r => { const w = W[r.w]; return `<li>
+        <img class="thumb" src="${img(w)}" alt="">
+        <span class="rt">${esc(w.title)}</span>
+        <span class="ra">${esc(A[w.a].name)}, ${when(w)}</span>
+        <span class="rp ${r.pts === 0 ? 'zero' : r.pts === 100 ? 'full' : ''}">+${r.pts}<small>${TYPES[r.type].name}</small></span>
+      </li>`; }).join('')}
+    </ol>
+  </div>`;
+}
+
+/* ---------- actions ---------- */
+const narrow = () => window.innerWidth < 860;
+function toTop() { try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { window.scrollTo(0, 0); } }
+function start(mode) {
+  S.mode = mode; S.rounds = newTour(mode); S.i = 0; S.screen = 'play'; S.quitAsk = false; S.newBest = false; S.tourHard = S.hard;
+  render(); toTop();
+}
+function settle() {
+  markStage(); paintPanel(); paintBar();
+  const nx = $('#next');
+  if (nx) nx.focus({ preventScroll: true });
+  if (narrow()) $('#panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function choose(k) {
+  const r = cur();
+  if (!r || r.done || r.type === 'date' || (r.typed && !r.showOpts) || !(k >= 0 && k < r.opts.length)) return;
+  r.pick = k; r.done = true;
+  r.pts = k === r.ans ? worthNow(r) : 0;
+  settle();
+}
+function submitTyped(pass) {
+  const r = cur();
+  if (!r || r.done || !r.typed || r.showOpts) return;
+  const inp = $('#artist-input'), text = inp ? inp.value.trim() : '';
+  if (!pass && !text) { if (inp) inp.focus(); return; }
+  r.text = text; r.pass = !!pass;
+  r.ok = !pass && whoIs(text) === W[r.w].a;
+  r.done = true;
+  r.pts = r.ok ? worthNow(r) : 0;
+  settle();
+}
+function lock() {
+  const r = cur();
+  if (!r || r.done || r.type !== 'date') return;
+  r.guess = +$('#year-range').value;
+  r.pts = dateScore(W[r.w].year, r.guess);
+  r.done = true;
+  settle();
+}
+function setYear(y) {
+  const r = cur();
+  y = Math.max(Y0, Math.min(Y1, y));
+  r.guess = y;
+  $('#year-range').value = y;
+  $('#year-out').textContent = y;
+  $('#lock-year').textContent = y;
+  $('#year-century').textContent = century(y);
+}
+function next() {
+  if (S.i < S.rounds.length - 1) { S.i++; S.quitAsk = false; paintBar(); paintStage(); paintPanel(); toTop(); }
+  else {
+    S.screen = 'finale';
+    if (S.mode === 'tour') { const key = bestKey(S.tourHard), b = store.get(key, 0); S.newBest = score() > b; if (S.newBest) store.set(key, score()); }
+    render(); toTop();
+    const ag = $('#again'); if (ag) ag.focus({ preventScroll: true });
+  }
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const act = b.dataset.act, v = b.dataset.v;
+  if (act === 'start') start(v);
+  else if (act === 'pick') choose(+v);
+  else if (act === 'zoom') { const r = cur(); if (!r.done && r.zoom < 2) { const inp = $('#artist-input'); if (inp) r.text = inp.value; r.zoom++; $('#canvas').style.setProperty('--z', ZOOMS[r.zoom]); paintPanel(); } }
+  else if (act === 'show-opts') { const r = cur(); if (!r.done && r.typed) { r.showOpts = true; paintPanel(); } }
+  else if (act === 'pass') submitTyped(true);
+  else if (act === 'level') { S.hard = v === '1'; store.set('ug.hard', S.hard); render(); const on = $('.lvl.is-on'); if (on) on.focus({ preventScroll: true }); }
+  else if (act === 'nudge') setYear(+$('#year-range').value + +v);
+  else if (act === 'lock') lock();
+  else if (act === 'next') next();
+  else if (act === 'quit') { S.quitAsk = true; paintBar(); }
+  else if (act === 'quit-no') { S.quitAsk = false; paintBar(); }
+  else if (act === 'quit-yes' || act === 'lobby') { S.screen = 'lobby'; S.hero = pickHero(); render(); toTop(); }
+});
+document.addEventListener('input', e => { if (e.target.id === 'year-range') setYear(+e.target.value); });
+document.addEventListener('submit', e => { if (e.target.id === 'typed-form') { e.preventDefault(); submitTyped(false); } });
+document.addEventListener('keydown', e => {
+  if (S.screen !== 'play' || e.metaKey || e.ctrlKey || e.altKey) return;
+  const r = cur(), tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (!r.done && /^[1-4]$/.test(e.key) && r.type !== 'date' && !(r.typed && !r.showOpts)) { e.preventDefault(); choose(+e.key - 1); }
+  else if (e.key === 'Enter' && tag !== 'BUTTON' && tag !== 'A') {
+    if (r.done) { e.preventDefault(); next(); }
+    else if (r.type === 'date') { e.preventDefault(); lock(); }
+  }
+});
+
+/* ---------- boot ---------- */
+function boot(data) {
+  const saved = data && data.S;
+  if (saved && saved.v === D.v && Array.isArray(saved.rounds) && saved.rounds.every(r => W[r.w])) S = saved;
+  if (!S.hero || S.hero.length !== 5) S.hero = pickHero();
+  render();
+}
+const hot = window.claude && window.claude.hot;
+try { if (hot && hot.snapshot) hot.snapshot(() => ({ S })); } catch (e) {}
+if (hot && hot.ready) hot.ready(boot); else boot((hot && hot.data) || {});
+})();
+</script>
+
+</body>
+</html>
